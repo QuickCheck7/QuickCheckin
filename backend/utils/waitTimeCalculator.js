@@ -25,7 +25,7 @@ const calculateWaitTime = async (restaurantId, partySize) => {
       Table.find({ 
         restaurantId: new mongoose.Types.ObjectId(restaurantId), 
         isActive: true,
-        status: { $ne: 'unavailable' }
+        status: { $nin: ['unavailable', 'reserved'] }
       }).sort({ capacity: 1 }), // Sort by capacity for preference logic
 
       // Waitlist queue (excluding seeded/cancelled/completed)

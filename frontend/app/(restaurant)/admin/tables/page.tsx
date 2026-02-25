@@ -31,6 +31,7 @@ export default function TablesPage() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [updatingTableId, setUpdatingTableId] = useState<string | null>(null);
+  const [filterStatus, setFilterStatus] = useState<string>('all');
 
   // Fetch tables from backend
   const fetchTables = useCallback(async () => {
@@ -62,7 +63,7 @@ export default function TablesPage() {
     fetchTables();
   };
 
-  const handleUpdateStatus = async (tableId: string, status: 'available' | 'cleaning' | 'occupied' | 'unavailable') => {
+  const handleUpdateStatus = async (tableId: string, status: 'available' | 'cleaning' | 'occupied' | 'unavailable' | 'reserved') => {
     setUpdatingTableId(tableId);
     try {
       const result = await apiClient.updateTableStatus(tableId, status);
@@ -107,8 +108,8 @@ export default function TablesPage() {
         return 'bg-info/10 text-info border border-info/30';
       case 'occupied':
         return 'bg-orange-500/10 text-orange-600 border border-orange-500/30';
-      case 'cleaning':
-        return 'bg-purple-500/10 text-purple-600 border border-purple-500/30';
+      case 'reserved':
+        return 'bg-blue-500/10 text-blue-600 border border-blue-500/30';
       case 'cleaning':
         return 'bg-purple-500/10 text-purple-600 border border-purple-500/30';
       case 'unavailable':
@@ -126,8 +127,6 @@ export default function TablesPage() {
         return <Clock className="h-4 w-4" />;
       case 'occupied':
         return <Users className="h-4 w-4" />;
-      case 'cleaning':
-        return <Sparkles className="h-4 w-4" />;
       case 'cleaning':
         return <Sparkles className="h-4 w-4" />;
       case 'unavailable':
@@ -153,6 +152,14 @@ export default function TablesPage() {
     unavailable: tables.filter(t => t.status === 'unavailable').length,
   };
 
+  const toggleFilter = (status: string) => {
+    setFilterStatus(prev => prev === status ? 'all' : status);
+  };
+
+  const filteredTables = filterStatus === 'all' 
+    ? tables 
+    : tables.filter(t => t.status === filterStatus);
+
   return (
     <div className="space-y-8 text-ink">
       {/* Header */}
@@ -173,8 +180,11 @@ export default function TablesPage() {
       </div>
 
       {/* Stats Overview */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card className="bg-panel border border-border shadow-soft">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+        <Card 
+          className={`bg-panel border shadow-soft cursor-pointer transition-colors hover:border-success/50 ${filterStatus === 'available' ? 'border-success ring-1 ring-success' : 'border-border'}`}
+          onClick={() => toggleFilter('available')}
+        >
           <CardContent className="pt-6">
             <div className="flex items-center gap-2">
               <CheckCircle className="h-5 w-5 text-success" />
@@ -186,7 +196,10 @@ export default function TablesPage() {
           </CardContent>
         </Card>
 
-        <Card className="bg-panel border border-border shadow-soft">
+        <Card 
+          className={`bg-panel border shadow-soft cursor-pointer transition-colors hover:border-orange-500/50 ${filterStatus === 'occupied' ? 'border-orange-500 ring-1 ring-orange-500' : 'border-border'}`}
+          onClick={() => toggleFilter('occupied')}
+        >
           <CardContent className="pt-6">
             <div className="flex items-center gap-2">
               <Users className="h-5 w-5 text-orange-600" />
@@ -198,7 +211,10 @@ export default function TablesPage() {
           </CardContent>
         </Card>
 
-        <Card className="bg-panel border border-border shadow-soft">
+        <Card 
+          className={`bg-panel border shadow-soft cursor-pointer transition-colors hover:border-purple-500/50 ${filterStatus === 'cleaning' ? 'border-purple-500 ring-1 ring-purple-500' : 'border-border'}`}
+          onClick={() => toggleFilter('cleaning')}
+        >
           <CardContent className="pt-6">
             <div className="flex items-center gap-2">
               <Sparkles className="h-5 w-5 text-purple-600" />
@@ -210,7 +226,10 @@ export default function TablesPage() {
           </CardContent>
         </Card>
 
-        <Card className="bg-panel border border-border shadow-soft">
+        <Card 
+          className={`bg-panel border shadow-soft cursor-pointer transition-colors hover:border-info/50 ${filterStatus === 'reserved' ? 'border-info ring-1 ring-info' : 'border-border'}`}
+          onClick={() => toggleFilter('reserved')}
+        >
           <CardContent className="pt-6">
             <div className="flex items-center gap-2">
               <Clock className="h-5 w-5 text-info" />
@@ -223,7 +242,10 @@ export default function TablesPage() {
         </Card>
 
         {/* Unavailable Stats */}
-         <Card className="bg-panel border border-border shadow-soft">
+         <Card 
+           className={`bg-panel border shadow-soft cursor-pointer transition-colors hover:border-red-500/50 ${filterStatus === 'unavailable' ? 'border-red-500 ring-1 ring-red-500' : 'border-border'}`}
+           onClick={() => toggleFilter('unavailable')}
+         >
           <CardContent className="pt-6">
             <div className="flex items-center gap-2">
               <Ban className="h-5 w-5 text-red-600" />
@@ -251,9 +273,22 @@ export default function TablesPage() {
             </Button>
           </CardContent>
         </Card>
+      ) : filteredTables.length === 0 ? (
+        <Card className="bg-panel border border-border shadow-soft">
+          <CardContent className="py-12 text-center">
+            <h3 className="text-lg font-medium mb-2">{t('noTablesMatchFilter') || 'No tables match this filter'}</h3>
+            <Button 
+              onClick={() => setFilterStatus('all')}
+              variant="outline"
+              className="mt-4"
+            >
+              {t('clearFilter') || 'Clear Filter'}
+            </Button>
+          </CardContent>
+        </Card>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {tables.filter(t => t.isActive).map((table) => (
+          {filteredTables.filter(t => t.isActive).map((table) => (
             <Card key={table._id} className="overflow-hidden bg-panel border border-border shadow-soft">
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
@@ -281,12 +316,12 @@ export default function TablesPage() {
                         <CheckCircle className="h-6 w-6 text-success mx-auto mb-1" />
                         <p className="text-sm font-medium text-success">{t('readyForGuests')}</p>
                       </div>
-                      <div className="grid grid-cols-2 gap-2 mt-2">
+                      <div className="flex flex-col gap-2 mt-2">
                         <Button
                           size="sm"
                           onClick={() => handleWalkIn(table._id, table.capacity)}
                           disabled={updatingTableId === table._id}
-                          className="bg-primary hover:bg-primary-600 text-white"
+                          className="w-full bg-primary hover:bg-primary-600 text-white"
                         >
                            {updatingTableId === table._id ? (
                             <Loader2 className="h-4 w-4 mr-1 animate-spin" />
@@ -295,16 +330,28 @@ export default function TablesPage() {
                           )}
                           {t('seatWalkIn') || 'Walk-In'}
                         </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleUpdateStatus(table._id, 'unavailable')}
-                          disabled={updatingTableId === table._id}
-                          className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 hover:border-red-300"
-                        >
-                          <Ban className="h-4 w-4 mr-1" />
-                          {t('unavailable') || 'Unavailable'}
-                        </Button>
+                        <div className="grid grid-cols-2 gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleUpdateStatus(table._id, 'reserved')}
+                            disabled={updatingTableId === table._id}
+                            className="border-info text-info hover:bg-info/10 font-medium"
+                          >
+                            <Clock className="h-4 w-4 mr-1" />
+                            {t('reserve') || 'Reserve'}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleUpdateStatus(table._id, 'unavailable')}
+                            disabled={updatingTableId === table._id}
+                            className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 hover:border-red-300"
+                          >
+                            <Ban className="h-4 w-4 mr-1" />
+                            {t('unavailable') || 'Unavailable'}
+                          </Button>
+                        </div>
                       </div>
                     </>
                   )}
@@ -345,15 +392,33 @@ export default function TablesPage() {
 
                   {/* Reserved */}
                   {table.status === 'reserved' && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="w-full border-info text-info hover:bg-info/10"
-                      disabled
-                    >
-                      <Clock className="h-4 w-4 mr-2" />
-                      {t('reserved')}
-                    </Button>
+                    <div className="space-y-2">
+                       <div className="bg-info/10 rounded-lg p-3 text-center border border-info/20">
+                         <Clock className="h-6 w-6 text-info mx-auto mb-1" />
+                         <p className="text-sm font-medium text-info">{t('reserved')}</p>
+                       </div>
+                       <div className="grid grid-cols-2 gap-2 mt-2">
+                          <Button
+                            size="sm"
+                            onClick={() => handleUpdateStatus(table._id, 'occupied')}
+                            disabled={updatingTableId === table._id}
+                            className="w-full bg-info hover:bg-info/90 text-white"
+                          >
+                            <Users className="h-4 w-4 mr-1" />
+                            {t('markSeated') || 'Seat'}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleUpdateStatus(table._id, 'available')}
+                            disabled={updatingTableId === table._id}
+                            className="w-full border-success text-success hover:bg-success/10 bg-success/5"
+                          >
+                            <CheckCircle className="h-4 w-4 mr-1" />
+                            {t('markAvailable') || 'Available'}
+                          </Button>
+                       </div>
+                    </div>
                   )}
 
                   {/* Unavailable */}

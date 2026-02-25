@@ -36,11 +36,11 @@ const broadcastWaitTimeUpdate = async (req, restaurantId) => {
     const sseEmitter = req.app.get('sseEmitter');
     if (!sseEmitter) return;
     
-    // Get all table capacities
+    // Get all active tables capacities
     const tables = await Table.find({ 
-      restaurantId, 
+      restaurantId: req.params.restaurantId, 
       isActive: true,
-      status: { $ne: 'unavailable' }
+      status: { $nin: ['unavailable', 'reserved'] }
     }).distinct('capacity');
     
     if (tables.length === 0) return;
@@ -687,18 +687,17 @@ const getWaitTimes = async (req, res) => {
   try {
     const { restaurantId } = req.params;
     
-    // Get all table capacities to determine party sizes
+    // Get all unique table capacities for this restaurant
     const tables = await Table.find({ 
-      restaurantId, 
+      restaurantId: req.params.restaurantId,
       isActive: true,
-      status: { $ne: 'unavailable' }
+      status: { $nin: ['unavailable', 'reserved'] }
     }).distinct('capacity');
     
     if (tables.length === 0) {
       return res.json({ waitTimes: {} });
     }
     
-    // Sort capacities
     const partySizes = tables.sort((a, b) => a - b);
     
     // Calculate wait time for each party size

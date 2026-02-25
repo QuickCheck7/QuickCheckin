@@ -131,7 +131,12 @@ const getSettings = async (req, res) => {
     }
 
     // Get tables
-    const tables = await Table.find({ restaurantId, isActive: true }).sort({ tableNumber: 1 });
+    const tables = await Table.find({ restaurantId, isActive: true });
+    
+    // Sort tables naturally (e.g. T1, T2... T10)
+    tables.sort((a, b) => 
+      (a.tableNumber || '').localeCompare(b.tableNumber || '', undefined, { numeric: true, sensitivity: 'base' })
+    );
 
     res.json({
       settings: {
@@ -259,8 +264,12 @@ const updateTables = async (req, res) => {
       }
     }
 
-    const updatedTables = await Table.find({ restaurantId, isActive: true }).sort({ tableNumber: 1 });
-
+    const updatedTables = await Table.find({ restaurantId, isActive: true });
+    
+    // Sort tables naturally
+    updatedTables.sort((a, b) => 
+      (a.tableNumber || '').localeCompare(b.tableNumber || '', undefined, { numeric: true, sensitivity: 'base' })
+    );
     res.json({ 
       message: 'Tables updated successfully',
       tables: updatedTables
@@ -370,7 +379,7 @@ const broadcastWaitTimeUpdate = async (req, restaurantId) => {
     const tables = await Table.find({ 
       restaurantId, 
       isActive: true,
-      status: { $ne: 'unavailable' }
+      status: { $nin: ['unavailable', 'reserved'] }
     }).distinct('capacity');
     
     if (tables.length === 0) return;
@@ -406,8 +415,8 @@ const updateTableStatus = async (req, res) => {
 
     table.status = status;
     
-    // Clear booking reference if marking available, cleaning, or unavailable
-    if (status === 'available' || status === 'cleaning' || status === 'unavailable') {
+    // Clear booking reference if marking available, cleaning, unavailable, or reserved
+    if (['available', 'cleaning', 'unavailable', 'reserved'].includes(status)) {
       table.currentBookingId = null;
       table.seatedAt = null;
     } else if (status === 'occupied') {

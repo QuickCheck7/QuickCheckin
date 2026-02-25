@@ -350,7 +350,7 @@ export default function SettingsPage() {
 
       {/* Table Configuration */}
       <Card className="bg-panel border border-border shadow-soft">
-        <CardHeader>
+        <CardHeader className="sticky top-0 z-20 bg-panel/95 backdrop-blur-sm border-b border-border/50 shadow-sm rounded-t-xl">
           <CardTitle className="flex items-center justify-between">
             <div className="flex items-center">
               <Restaurant className="h-5 w-5 mr-2 text-primary" />
