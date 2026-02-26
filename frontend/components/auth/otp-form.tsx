@@ -64,7 +64,7 @@ export function OtpForm() {
             onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
             maxLength={6}
             inputMode="numeric"
-            className="mt-2 text-center text-2xl tracking-widest font-mono h-12 rounded-xl border-border focus-visible:ring-2 focus-visible:ring-primary"
+            className="mt-2 text-center text-2xl tracking-widest h-12 rounded-xl border-border focus-visible:ring-2 focus-visible:ring-primary"
           />
           {error && <p className="text-error text-sm mt-2">{error}</p>}
         </div>

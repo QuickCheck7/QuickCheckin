@@ -63,7 +63,15 @@ const broadcastWaitTimeUpdate = async (req, restaurantId) => {
 const createBooking = async (req, res) => {
   try {
     const { restaurantId } = req.params;
-    const { customerName, customerPhone, partySize, skipSms, isCustomParty, language } = req.body;
+    let { customerName } = req.body;
+    const { customerPhone, partySize, skipSms, isCustomParty, language } = req.body;
+    
+    // Format customer name to Title Case (e.g. HaRman SInGH -> Harman Singh)
+    if (customerName) {
+      customerName = customerName.trim().split(/\s+/).map(word => 
+        word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+      ).join(' ');
+    }
     
     const restaurant = await Restaurant.findById(restaurantId);
     if (!restaurant || !restaurant.isActive) {
@@ -636,7 +644,8 @@ const getDashboardStats = async (req, res) => {
     const [totalWaiting, todaysSeated, totalBookings] = await Promise.all([
       Booking.countDocuments({ 
         restaurantId, 
-        status: { $in: ['waiting', 'notified', 'confirmed'] } 
+        status: { $in: ['waiting', 'notified', 'confirmed'] },
+        createdAt: { $gte: today, $lte: endOfDay }
       }),
       Booking.countDocuments({ 
         restaurantId, 

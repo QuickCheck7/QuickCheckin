@@ -16,6 +16,8 @@ const PartyDuration = require('../models/PartyDuration');
 const calculateWaitTime = async (restaurantId, partySize) => {
   try {
     const now = new Date();
+    const startOfDay = new Date(now);
+    startOfDay.setHours(0, 0, 0, 0);
     const TURNAROUND_BUFFER = 5; // 5 minutes for cleaning/seating
 
     // 1. Fetch Configuration & Data
@@ -28,10 +30,11 @@ const calculateWaitTime = async (restaurantId, partySize) => {
         status: { $nin: ['unavailable', 'reserved'] }
       }).sort({ capacity: 1 }), // Sort by capacity for preference logic
 
-      // Waitlist queue (excluding seeded/cancelled/completed)
+      // Waitlist queue (excluding seeded/cancelled/completed, AND from today only)
       Booking.find({
         restaurantId: new mongoose.Types.ObjectId(restaurantId),
-        status: { $in: ['waiting', 'notified', 'confirmed'] }
+        status: { $in: ['waiting', 'notified', 'confirmed'] },
+        createdAt: { $gte: startOfDay }
       }).sort({ createdAt: 1 }), // Oldest first (FIFO)
 
       // Party Durations Lookup

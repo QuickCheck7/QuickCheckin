@@ -167,14 +167,24 @@ function KioskContent() {
     }
   };
 
-  const resetFlow = () => {
+  const resetFlow = useCallback(() => {
     setStep('party-size');
     setPartySize(0);
     setIsCustom(false);
     setName('');
     setPhone('');
     setErrors({});
-  };
+  }, []);
+
+  // Auto-redirect back to main screen after 5 seconds on success
+  useEffect(() => {
+    if (step === 'success' || step === 'custom-success') {
+      const timer = setTimeout(() => {
+        resetFlow();
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [step, resetFlow]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/5 via-off to-sage/10">
