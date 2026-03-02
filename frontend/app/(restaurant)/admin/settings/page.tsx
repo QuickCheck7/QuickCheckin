@@ -132,25 +132,11 @@ export default function SettingsPage() {
   return (
     <div className="space-y-8 text-ink">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-display font-bold mb-2">{t('restaurantSettings')}</h1>
-          <p className="text-muted">
-            {t('manageConfiguration')}
-          </p>
-        </div>
-        <Button 
-          onClick={handleSave} 
-          className="bg-primary hover:bg-primary-600 text-white"
-          disabled={saving}
-        >
-          {saving ? (
-            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-          ) : (
-            <Save className="h-4 w-4 mr-2" />
-          )}
-          {t('saveChanges')}
-        </Button>
+      <div>
+        <h1 className="text-3xl font-display font-bold mb-2">{t('restaurantSettings')}</h1>
+        <p className="text-muted">
+          {t('manageConfiguration')}
+        </p>
       </div>
 
       {/* Restaurant Profile - Read Only */}
@@ -356,18 +342,33 @@ export default function SettingsPage() {
               <Restaurant className="h-5 w-5 mr-2 text-primary" />
               {t('tableConfiguration')}
             </div>
-            <Button 
-              onClick={addTable} 
-              size="sm" 
-              className="bg-primary hover:bg-primary-600 text-white"
-              disabled={
-                settings.subscriptionPlan === 'small' && 
-                tableConfig.reduce((acc, t) => acc + (t.capacity || 0), 0) >= 50
-              }
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              {t('addTable')}
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button 
+                onClick={addTable} 
+                size="sm" 
+                className="bg-primary hover:bg-primary-600 text-white"
+                disabled={
+                  settings.subscriptionPlan === 'small' && 
+                  tableConfig.reduce((acc, t) => acc + (t.capacity || 0), 0) >= 50
+                }
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                {t('addTable')}
+              </Button>
+              <Button
+                onClick={handleSave}
+                size="sm"
+                className="bg-primary hover:bg-primary-600 text-white"
+                disabled={saving}
+              >
+                {saving ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Save className="h-4 w-4 mr-2" />
+                )}
+                {t('saveChanges')}
+              </Button>
+            </div>
           </CardTitle>
           <CardDescription className="text-muted">
             {t('manageIndividualTables')}
@@ -407,50 +408,72 @@ export default function SettingsPage() {
           )}
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
+          <div className="space-y-4 pt-4 pb-2">
             {tableConfig.length === 0 ? (
               <div className="text-center py-8 text-muted">
                 {t('noTablesConfigured')}
               </div>
             ) : (
-              tableConfig.map((table, index) => (
-                <div
-                  key={table.id || table._id || index}
-                  className="flex items-center gap-4 p-4 border border-border rounded-lg bg-off"
-                >
-                  <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <Label className="text-ink">{t('tableNumber')}</Label>
-                      <Input
-                        value={table.tableNumber}
-                        onChange={(e) => updateTable(index, 'tableNumber', e.target.value)}
-                        placeholder="T1, T2, etc."
-                        className="mt-2 border-border focus-visible:ring-2 focus-visible:ring-primary"
-                      />
-                    </div>
-                    <div>
-                      <Label className="text-ink">{t('capacity')}</Label>
-                      <Input
-                        type="number"
-                        min={1}
-                        max={20}
-                        value={table.capacity === 0 ? '' : table.capacity}
-                        onChange={(e) => updateTable(index, 'capacity', parseInt(e.target.value) || 0)}
-                        placeholder="Enter capacity"
-                        className="mt-2 border-border focus-visible:ring-2 focus-visible:ring-primary"
-                      />
-                    </div>
-                  </div>
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={() => removeTable(index)}
-                    disabled={tableConfig.length <= 1}
+              tableConfig.map((table, index) => {
+                const isFirst = index === 0;
+                const isLast = index === tableConfig.length - 1;
+                return (
+                  <div
+                    key={table.id || table._id || index}
+                    className={`flex items-start gap-4 p-4 border rounded-lg bg-off transition-colors ${
+                      isFirst ? 'border-primary/40 ring-1 ring-primary/20' :
+                      isLast  ? 'border-border/60 border-dashed' :
+                      'border-border'
+                    }`}
                   >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              ))
+                    <div className="flex-1">
+                      {(isFirst || isLast) && (
+                        <div className="mb-2">
+                          <span className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full ${
+                            isFirst
+                              ? 'bg-primary/10 text-primary'
+                              : 'bg-muted/30 text-muted'
+                          }`}>
+                            {isFirst ? '↑ First Table' : '↓ Last Table'}
+                          </span>
+                        </div>
+                      )}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <Label className="text-ink">{t('tableNumber')}</Label>
+                          <Input
+                            value={table.tableNumber}
+                            onChange={(e) => updateTable(index, 'tableNumber', e.target.value)}
+                            placeholder="T1, T2, etc."
+                            className="mt-2 border-border focus-visible:ring-2 focus-visible:ring-primary"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-ink">{t('capacity')}</Label>
+                          <Input
+                            type="number"
+                            min={1}
+                            max={20}
+                            value={table.capacity === 0 ? '' : table.capacity}
+                            onChange={(e) => updateTable(index, 'capacity', parseInt(e.target.value) || 0)}
+                            placeholder="Enter capacity"
+                            className="mt-2 border-border focus-visible:ring-2 focus-visible:ring-primary"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => removeTable(index)}
+                      disabled={tableConfig.length <= 1}
+                      className="mt-6"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                );
+              })
             )}
           </div>
         </CardContent>
