@@ -330,7 +330,42 @@ const getMessages = async (req, res) => {
     const { customerPhone, limit = 50 } = req.query;
 
     const query = { restaurantId };
-    if (customerPhone) {
+
+    // When no search term is provided, apply the business-day window.
+    // A business day runs 6:00 AM → next 6:00 AM in Canada/Eastern time (handles DST automatically).
+    if (!customerPhone) {
+      const nowUtc = new Date();
+
+      // Step 1 – get today's date components in Eastern Time
+      const etParts = new Intl.DateTimeFormat('en-US', {
+        timeZone: 'America/Toronto',
+        year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit',
+        hour12: false
+      }).formatToParts(nowUtc);
+      const etYear  = parseInt(etParts.find(p => p.type === 'year').value, 10);
+      const etMonth = parseInt(etParts.find(p => p.type === 'month').value, 10) - 1;
+      const etDay   = parseInt(etParts.find(p => p.type === 'day').value, 10);
+      const etHour  = parseInt(etParts.find(p => p.type === 'hour').value, 10);
+
+      // Step 2 – derive the ET→UTC offset using a safe mid-day reference point
+      const etDateStr = `${etYear}-${String(etMonth + 1).padStart(2, '0')}-${String(etDay).padStart(2, '0')}`;
+      const midDayUtc = new Date(`${etDateStr}T12:00:00Z`); // noon UTC is always safely within ET day
+      const midDayEtStr = midDayUtc.toLocaleString('en-US', { timeZone: 'America/Toronto', hour12: false });
+      const [mdyPart, timePart] = midDayEtStr.split(', ');
+      const [mo, dy, yr] = mdyPart.split('/');
+      const [hh, mm, ss] = timePart.split(':');
+      const midDayEtAsUtc = new Date(Date.UTC(+yr, +mo - 1, +dy, +hh, +mm, +ss));
+      const etOffsetMs = midDayUtc.getTime() - midDayEtAsUtc.getTime(); // e.g. +18000000 (UTC-5) or +14400000 (UTC-4)
+
+      // Step 3 – compute 6 AM ET today in UTC; if we haven't reached it yet, use yesterday's 6 AM
+      const sixAmTodayUtc = new Date(Date.UTC(etYear, etMonth, etDay, 6, 0, 0) + etOffsetMs);
+      const businessDayStartUtc = nowUtc < sixAmTodayUtc
+        ? new Date(sixAmTodayUtc.getTime() - 24 * 60 * 60 * 1000) // yesterday's 6 AM ET
+        : sixAmTodayUtc;                                           // today's 6 AM ET
+      const businessDayEndUtc = new Date(businessDayStartUtc.getTime() + 24 * 60 * 60 * 1000);
+
+      query.createdAt = { $gte: businessDayStartUtc, $lt: businessDayEndUtc };
+    } else {
       query.customerPhone = { $regex: customerPhone, $options: 'i' };
     }
 
