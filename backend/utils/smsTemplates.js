@@ -8,7 +8,7 @@
 const templates = {
   en: {
     confirmation: 
-      `Hi {name} You\u2019re on the waitlist at {restaurant} for a table of {partySize}.\nEstimated wait time: {waitTime} minutes. We\u2019ll text you when your table is ready.`,
+      `Hi {name} You\u2019re on the waitlist at {restaurant} for a table of {partySize}.\nEstimated wait time: {waitTime}. We\u2019ll text you when your table is ready.`,
 
     tableReady: 
       `Hi {name}! Your table for {partySize} at {restaurant} is ready.\nPlease arrive within {gracePeriod} minutes.\nReply Y to confirm or N to cancel.`,
@@ -31,7 +31,7 @@ const templates = {
 
   fr: {
     confirmation: 
-      `Bonjour {name}, vous \u00eates sur la liste d\u2019attente de {restaurant} pour un groupe de {partySize}.\nTemps d\u2019attente estim\u00e9 : {waitTime} minutes.\nNous vous enverrons un message lorsque votre table sera pr\u00eate.`,
+      `Bonjour {name}, vous \u00eates sur la liste d\u2019attente de {restaurant} pour un groupe de {partySize}.\nTemps d\u2019attente estim\u00e9 : {waitTime}.\nNous vous enverrons un message lorsque votre table sera pr\u00eate.`,
 
     tableReady: 
       `Bonjour {name}, votre table pour {partySize} chez {restaurant} est pr\u00eate.\nMerci d\u2019arriver dans les {gracePeriod} minutes.\nR\u00e9pondez O pour confirmer ou N pour annuler.`,
@@ -76,6 +76,27 @@ const getSmsTemplate = (templateKey, language = 'en', variables = {}) => {
     variables.name = variables.name
       .toLowerCase()
       .replace(/(?:^|\s|-)\S/g, l => l.toUpperCase());
+  }
+
+  // Format waitTime into hours/minutes if >= 60
+  if (variables.waitTime !== undefined) {
+    const minutes = parseInt(variables.waitTime, 10);
+    if (!isNaN(minutes)) {
+      if (minutes < 60) {
+        variables.waitTime = `${minutes} ${lang === 'fr' ? 'minutes' : 'minutes'}`;
+      } else {
+        const hours = Math.floor(minutes / 60);
+        const remMins = minutes % 60;
+        const hrStr = lang === 'fr' ? 'h' : (hours === 1 ? 'hr' : 'hrs');
+        const minStr = lang === 'fr' ? 'min' : 'min';
+        
+        if (remMins === 0) {
+          variables.waitTime = `${hours} ${hrStr}`;
+        } else {
+          variables.waitTime = `${hours} ${hrStr} ${remMins} ${minStr}`;
+        }
+      }
+    }
   }
 
   for (const [key, value] of Object.entries(variables)) {

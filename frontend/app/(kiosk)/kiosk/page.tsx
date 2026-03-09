@@ -6,7 +6,8 @@ import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { CheckCircle, Phone, ArrowRight, Home, LogOut, Loader2, Users, Wifi, Battery, Signal, Clock, AlertTriangle } from 'lucide-react';
+import { CheckCircle, Clock, Search, Send, Users, WifiOff, MapPin, Store, ChevronRight, Loader2, Phone, ArrowRight, Home, LogOut, Wifi, Battery, Signal, AlertTriangle } from 'lucide-react';
+import { formatWaitTime } from '@/lib/utils';
 import { useAuthStore } from '@/lib/auth-store';
 import { AuthWrapper } from '@/components/auth/auth-wrapper';
 import { useTranslation } from '@/lib/i18n';
@@ -269,7 +270,7 @@ function KioskContent() {
                               <span className={`text-xs flex items-center gap-1 ${partySize === size ? 'text-white/80' : 'text-muted'
                                 }`}>
                                 <Clock className="h-3 w-3" />
-                                ~{waitTimes[size] || 5} min
+                                {formatWaitTime(waitTimes[size] || 5, t)}
                               </span>
                             </Button>
                           ))}
@@ -552,7 +553,7 @@ function KioskContent() {
                   <div className="bg-off ring-1 ring-border rounded-xl2 p-6 mb-8">
                     <h3 className="font-semibold mb-2 text-ink">{t('currentWaitTime')}</h3>
                     <p className="text-3xl font-bold text-primary">
-                      {waitTime || 25}-{(waitTime || 25) + 5} {t('minutes')}
+                      {formatWaitTime(waitTime || 25, t)} - {formatWaitTime((waitTime || 25) + 5, t).replace('~', '')}
                     </p>
                   </div>
                   <Button
