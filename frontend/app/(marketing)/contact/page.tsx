@@ -98,7 +98,7 @@ const STRINGS = {
       },
       {
         q: 'Do you offer a free trial?',
-        a: 'Yes! We offer a 1-month free trial with full access to all features. No credit card required.',
+        a: 'Yes! We offer a 1-month free trial with full access to all features.',
       },
       {
         q: 'What kind of support do you provide?',

@@ -511,7 +511,7 @@ const content: Record<Language, MarketingContent> = {
           },
         ],
         faq: [
-          { question: 'How long is the free trial?', answer: 'All plans include a 1-month free trial with full access to all features. No credit card required to start.' },
+          { question: 'How long is the free trial?', answer: 'All plans include a 1-month free trial with full access to all features.' },
           { question: 'What payment methods do you accept?', answer: 'We accept all major debit and credit cards for monthly billing.' },
           { question: 'Can I cancel anytime?', answer: 'Yes. You can cancel your subscription at any time with no cancellation fees.' },
           { question: 'Are SMS messages included?', answer: 'Yes! Unlimited SMS messaging is fully included in your plan with no additional charges.' },
@@ -523,7 +523,7 @@ const content: Record<Language, MarketingContent> = {
           description: 'Every plan includes everything you need to manage your waitlist.',
         },
         includedItems: [
-          '1-month free trial - no credit card required',
+          '1-month free trial - no charge during trial',
           'Unlimited SMS messaging - no per-message fees',
           'All features included - no tier restrictions',
           'Onboarding assistance included',
