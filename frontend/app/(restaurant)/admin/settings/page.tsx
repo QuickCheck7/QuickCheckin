@@ -500,7 +500,7 @@ export default function SettingsPage() {
           className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 rounded-full shadow-lg bg-panel hover:bg-off text-primary border-primary border"
         >
           <ArrowUp className="h-4 w-4 mr-2" />
-          {t('backToTop') || 'Back to top'}
+          Back to top
         </Button>
       )}
     </div>
