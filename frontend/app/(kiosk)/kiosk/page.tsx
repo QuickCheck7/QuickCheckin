@@ -193,7 +193,7 @@ function KioskContent() {
       <nav className="bg-panel border-b border-border shadow-soft sticky top-0 z-50">
         <div className="max-w-6xl mx-auto px-4 py-3">
           <div className="flex items-center justify-between">
-            <Link href="/" className="flex items-center space-x-2">
+            <div className="flex items-center space-x-2">
               <Image
                 src="/QuickCheck.svg"
                 alt="QuickCheck logo"
@@ -201,7 +201,7 @@ function KioskContent() {
                 height={32}
               />
               <span className="text-xl font-display font-bold text-ink">QuickCheck</span>
-            </Link>
+            </div>
             <div className="flex items-center space-x-3">
               <span className="text-sm text-muted hidden sm:block">{phoneNumber}</span>
               <LanguageSwitcher />
