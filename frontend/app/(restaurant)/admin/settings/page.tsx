@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { Settings, ListRestart as Restaurant, MessageSquare, Clock, Save, Plus, Trash2, Loader2, Lock } from 'lucide-react';
+import { Settings, ListRestart as Restaurant, MessageSquare, Clock, Save, Plus, Trash2, Loader2, Lock, ArrowUp } from 'lucide-react';
 import { useAuthStore } from '@/lib/auth-store';
 import { apiClient, RestaurantSettings, Table } from '@/lib/api-client';
 import { useTranslation } from '@/lib/i18n';
@@ -29,6 +29,19 @@ export default function SettingsPage() {
   const [saving, setSaving] = useState(false);
   const [settings, setSettings] = useState<RestaurantSettings | null>(null);
   const [tableConfig, setTableConfig] = useState<TableConfig[]>([]);
+  const [showBackToTop, setShowBackToTop] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.scrollY > 400) {
+        setShowBackToTop(true);
+      } else {
+        setShowBackToTop(false);
+      }
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   // Fetch settings from backend
   useEffect(() => {
@@ -478,6 +491,18 @@ export default function SettingsPage() {
           </div>
         </CardContent>
       </Card>
+
+      {showBackToTop && (
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+          className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 rounded-full shadow-lg bg-panel hover:bg-off text-primary border-primary border"
+        >
+          <ArrowUp className="h-4 w-4 mr-2" />
+          {t('backToTop') || 'Back to top'}
+        </Button>
+      )}
     </div>
   );
 }
