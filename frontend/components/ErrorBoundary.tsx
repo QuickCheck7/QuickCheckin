@@ -106,3 +106,4 @@ export function useErrorHandler() {
     // Could send to error monitoring service
   }
 }
+
