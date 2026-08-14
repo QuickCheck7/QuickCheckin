@@ -86,10 +86,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <div className="px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center gap-4">
-              <Link href="/" className="flex items-center gap-2">
+              <div className="flex items-center gap-2">
                 <Image src="/QuickCheck.svg" alt="QuickCheck logo" width={32} height={32} />
                 <span className="text-2xl font-display font-bold">QuickCheck</span>
-              </Link>
+              </div>
               <div className="hidden sm:block text-sm text-muted">
                 {t('restaurantAdmin')} • {restaurantData?.name || t('restaurantPanel')}
               </div>
@@ -99,16 +99,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             </div>
             <div className="flex items-center gap-2">
               <LanguageSwitcher />
-              <Link href="/">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="border-ink/15 text-ink hover:bg-off"
-                >
-                  <Home className="h-4 w-4 mr-2" />
-                  {t('home')}
-                </Button>
-              </Link>
+
               <Button
                 variant="outline"
                 size="sm"
