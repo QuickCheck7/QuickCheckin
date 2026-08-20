@@ -7,11 +7,13 @@ import { PricingPreviewSection } from "./components/PricingPreviewSection";
 import { ProblemOutcomeSection } from "./components/ProblemOutcomeSection";
 import { ReliabilitySection } from "./components/ReliabilitySection";
 import { TestimonialsSection } from "./components/TestimonialsSection";
+import { VideoDemoSection } from "./components/VideoDemoSection";
 
 export default function LandingPage() {
   return (
     <>
       <HeroSection />
+      <VideoDemoSection />
       <ProblemOutcomeSection />
       {/* <HowItWorksSection /> */}
       <FeaturesSection />
