@@ -10,10 +10,10 @@ export function VideoDemoSection() {
       <div className="mx-auto max-w-5xl">
         <div className="mx-auto mb-10 max-w-3xl text-center">
           <h2 className="text-3xl font-display font-bold text-ink sm:text-4xl">
-            See QuickCheck in Action
+            {t('videoDemoTitle')}
           </h2>
           <p className="mt-4 text-lg text-muted">
-            See how QuickCheck makes restaurant waitlists simple.
+            {t('videoDemoSubtitle')}
           </p>
         </div>
         

@@ -41,6 +41,8 @@ export const translations = {
     simulatedPreview: 'Simulated preview only — no SMS is sent.',
     smsDemo: 'SMS Demo',
     previewFor: 'Preview for:',
+    videoDemoTitle: 'See QuickCheck in Action',
+    videoDemoSubtitle: 'See how QuickCheck makes restaurant waitlists simple.',
 
     // Features
     featuresTitle: 'Everything You Need to Manage Waitlists',
@@ -357,6 +359,8 @@ export const translations = {
     simulatedPreview: 'Aperçu simulé uniquement — aucun SMS n\'est envoyé.',
     smsDemo: 'Démo SMS',
     previewFor: 'Aperçu pour :',
+    videoDemoTitle: 'Découvrez QuickCheck en action',
+    videoDemoSubtitle: 'Voyez comment QuickCheck simplifie les listes d\'attente de votre restaurant.',
 
     // Features
     featuresTitle: 'Tout ce dont vous avez besoin pour gérer les listes d\'attente',
