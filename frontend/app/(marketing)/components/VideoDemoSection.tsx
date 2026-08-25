@@ -13,7 +13,7 @@ export function VideoDemoSection() {
             See QuickCheck in Action
           </h2>
           <p className="mt-4 text-lg text-muted">
-            Watch how our 3-panel system creates a seamless experience from end to end.
+            See how QuickCheck makes restaurant waitlists simple.
           </p>
         </div>
         
@@ -21,7 +21,7 @@ export function VideoDemoSection() {
         <div className="relative w-full aspect-video rounded-2xl overflow-hidden shadow-soft border border-border bg-panel">
           <iframe
             className="absolute top-0 left-0 w-full h-full"
-            src="https://www.youtube.com/embed/QesjEtLIn1A"
+            src="https://www.youtube.com/embed/dexxL23lAbo?cc_load_policy=0"
             title="QuickCheck System Overview"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             allowFullScreen
