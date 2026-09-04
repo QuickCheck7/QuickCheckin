@@ -259,7 +259,7 @@ export default function RestaurantsPage() {
     setWorkingToggle((s) => ({ ...s, [id]: true }));
     try {
       const res = await api<any>(`/api/super-admin/restaurants/${id}/approve-trial`, { method: 'POST' });
-      setRestaurants((list) => list.map((r) => (r.id === id ? { ...r, subscriptionStatus: 'trialing', isActive: true } : r)));
+      setRestaurants((list) => list.map((r) => (r.id === id ? { ...r, subscriptionStatus: res.restaurant.subscriptionStatus, isActive: res.restaurant.isActive } : r)));
     } catch (err: any) {
       setErrorMsg(err?.message || 'Failed to approve trial');
     } finally {
@@ -272,7 +272,7 @@ export default function RestaurantsPage() {
     setWorkingToggle((s) => ({ ...s, [id]: true }));
     try {
       const res = await api<any>(`/api/super-admin/restaurants/${id}/decline-trial`, { method: 'POST' });
-      setRestaurants((list) => list.map((r) => (r.id === id ? { ...r, subscriptionStatus: 'active', isActive: true } : r)));
+      setRestaurants((list) => list.map((r) => (r.id === id ? { ...r, subscriptionStatus: res.restaurant.subscriptionStatus, isActive: res.restaurant.isActive } : r)));
     } catch (err: any) {
       setErrorMsg(err?.message || 'Failed to decline trial');
     } finally {

@@ -308,8 +308,8 @@ const declineTrial = async (req, res) => {
     const periodEnd = subscription.current_period_end;
     
     restaurant.stripeSubscriptionId = subscription.id;
-    restaurant.subscriptionStatus = 'active';
-    restaurant.isActive = true;
+    restaurant.subscriptionStatus = subscription.status;
+    restaurant.isActive = (subscription.status === 'active' || subscription.status === 'trialing');
     restaurant.subscriptionEndDate = new Date(periodEnd * 1000);
     restaurant.nextBillingDate = new Date(periodEnd * 1000);
     await restaurant.save();
