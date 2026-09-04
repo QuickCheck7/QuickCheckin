@@ -153,7 +153,7 @@ export default function RestaurantsPage() {
     setLoading(true);
     setErrorMsg(null);
     try {
-      const data = await api<GetRestaurantsResponse>('/api/super-admin/restaurants/');
+      const data = await api<GetRestaurantsResponse>('/api/super-admin/restaurants');
       const mapped: RestaurantUI[] = (data.restaurants || []).map((r) => ({
         id: r._id,
         name: r.name,
