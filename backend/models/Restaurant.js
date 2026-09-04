@@ -55,14 +55,12 @@ const restaurantSchema = new mongoose.Schema({
   stripeCustomerId: {
     type: String,
     unique: true,
-    sparse: true, // Allows null for legacy restaurants
-    default: null
+    sparse: true // Allows multiple null/undefined for legacy restaurants
   },
   stripeSubscriptionId: {
     type: String,
     unique: true,
-    sparse: true,
-    default: null
+    sparse: true
   },
   subscriptionStatus: {
     type: String,

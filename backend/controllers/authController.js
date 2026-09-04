@@ -416,10 +416,10 @@ const signup = async (req, res) => {
       subscriptionPlan: plan,
       subscriptionStatus: hasUsedTrial ? 'pending_approval' : 'trialing',
       stripeCustomerId: customer.id,
-      stripeSubscriptionId: subscription ? subscription.id : null,
+      stripeSubscriptionId: subscription ? subscription.id : undefined,
       subscriptionStartDate: new Date(),
-      subscriptionEndDate: periodEnd ? new Date(periodEnd * 1000) : null,
-      nextBillingDate: periodEnd ? new Date(periodEnd * 1000) : null,
+      subscriptionEndDate: periodEnd ? new Date(periodEnd * 1000) : undefined,
+      nextBillingDate: periodEnd ? new Date(periodEnd * 1000) : undefined,
       signupSource: 'self-service',
       isActive: !hasUsedTrial, // Pending approval means not active yet
       createdBy: null
@@ -434,9 +434,9 @@ const signup = async (req, res) => {
       toPlan: plan,
       amount: amount * 100,
       currency,
-      stripeSubscriptionId: subscription ? subscription.id : null,
+      stripeSubscriptionId: subscription ? subscription.id : undefined,
       metadata: {
-        trialEndDate: subscription ? subscription.trial_end : null,
+        trialEndDate: subscription ? subscription.trial_end : undefined,
         seatCapacity
       }
     });
