@@ -18,6 +18,7 @@ const authRoutes = require('./routes/auth');
 
 const app = express();
 
+
 // --- DB ---
 connectDB();
 
