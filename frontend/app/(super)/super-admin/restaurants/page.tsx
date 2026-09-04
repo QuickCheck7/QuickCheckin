@@ -254,6 +254,32 @@ export default function RestaurantsPage() {
     }
   };
 
+  const approveTrial = async (id: string) => {
+    if (workingToggle[id]) return;
+    setWorkingToggle((s) => ({ ...s, [id]: true }));
+    try {
+      const res = await api<any>(`/api/super-admin/restaurants/${id}/approve-trial`, { method: 'POST' });
+      setRestaurants((list) => list.map((r) => (r.id === id ? { ...r, subscriptionStatus: 'trialing', isActive: true } : r)));
+    } catch (err: any) {
+      setErrorMsg(err?.message || 'Failed to approve trial');
+    } finally {
+      setWorkingToggle((s) => ({ ...s, [id]: false }));
+    }
+  };
+
+  const declineTrial = async (id: string) => {
+    if (workingToggle[id]) return;
+    setWorkingToggle((s) => ({ ...s, [id]: true }));
+    try {
+      const res = await api<any>(`/api/super-admin/restaurants/${id}/decline-trial`, { method: 'POST' });
+      setRestaurants((list) => list.map((r) => (r.id === id ? { ...r, subscriptionStatus: 'active', isActive: true } : r)));
+    } catch (err: any) {
+      setErrorMsg(err?.message || 'Failed to decline trial');
+    } finally {
+      setWorkingToggle((s) => ({ ...s, [id]: false }));
+    }
+  };
+
   // Toggle status (PATCH /api/super-admin/restaurants/:id/toggle-status)
   const toggleStatus = async (id: string) => {
     if (workingToggle[id]) return;
@@ -583,6 +609,11 @@ export default function RestaurantsPage() {
                             Legacy
                           </Badge>
                         )}
+                        {r.subscriptionStatus === 'pending_approval' && (
+                          <Badge variant="outline" className="border-orange-500 text-orange-600 bg-orange-50">
+                            Pending Trial
+                          </Badge>
+                        )}
                       </CardTitle>
                       <CardDescription className="flex flex-wrap items-center gap-4 mt-2 text-muted">
                         <span className="flex items-center">
@@ -637,6 +668,27 @@ export default function RestaurantsPage() {
 
                   {/* Actions */}
                   <div className="mt-5 flex gap-2">
+                    {r.subscriptionStatus === 'pending_approval' && (
+                      <>
+                        <Button
+                          variant="default"
+                          onClick={() => approveTrial(r.id)}
+                          disabled={toggling || deleting}
+                          className="bg-green-600 hover:bg-green-700 text-white"
+                          size="sm"
+                        >
+                          {toggling ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Approve Trial'}
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          onClick={() => declineTrial(r.id)}
+                          disabled={toggling || deleting}
+                          size="sm"
+                        >
+                          {toggling ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Decline Trial'}
+                        </Button>
+                      </>
+                    )}
                     <Button
                       variant={r.isActive ? 'outline' : 'default'}
                       onClick={() => toggleStatus(r.id)}

@@ -383,23 +383,25 @@ const signup = async (req, res) => {
       return res.status(400).json({ message: 'Invalid payment method. Please try again.' });
     }
 
-    // Create Stripe Subscription
-    const subscriptionResult = await createStripeSubscription({
-      customerId: customer.id,
-      priceId,
-      trialDays: hasUsedTrial ? 0 : 30
-    });
+    let subscription = null;
+    let periodEnd = null;
 
-    if (!subscriptionResult.success) {
-      // Clean up customer
-      await stripe.customers.del(customer.id);
-      return res.status(500).json({ message: 'Subscription creation failed. Please try again.' });
+    if (!hasUsedTrial) {
+      // Create Stripe Subscription immediately only if they get a trial
+      const subscriptionResult = await createStripeSubscription({
+        customerId: customer.id,
+        priceId,
+        trialDays: 30
+      });
+
+      if (!subscriptionResult.success) {
+        // Clean up customer
+        await stripe.customers.del(customer.id);
+        return res.status(500).json({ message: 'Subscription creation failed. Please try again.' });
+      }
+      subscription = subscriptionResult.subscription;
+      periodEnd = subscription.trial_end || subscription.current_period_end;
     }
-
-    const { subscription } = subscriptionResult;
-    
-    // For trialDays 0, it charges immediately. Period end is current_period_end
-    const periodEnd = subscription.trial_end || subscription.current_period_end;
 
     // Create Restaurant in database
     const restaurant = new Restaurant({
@@ -412,14 +414,14 @@ const signup = async (req, res) => {
       phone,
       seatCapacity,
       subscriptionPlan: plan,
-      subscriptionStatus: hasUsedTrial ? 'active' : 'trialing',
+      subscriptionStatus: hasUsedTrial ? 'pending_approval' : 'trialing',
       stripeCustomerId: customer.id,
-      stripeSubscriptionId: subscription.id,
+      stripeSubscriptionId: subscription ? subscription.id : null,
       subscriptionStartDate: new Date(),
-      subscriptionEndDate: new Date(periodEnd * 1000),
-      nextBillingDate: new Date(periodEnd * 1000),
+      subscriptionEndDate: periodEnd ? new Date(periodEnd * 1000) : null,
+      nextBillingDate: periodEnd ? new Date(periodEnd * 1000) : null,
       signupSource: 'self-service',
-      isActive: true,
+      isActive: !hasUsedTrial, // Pending approval means not active yet
       createdBy: null
     });
 
@@ -428,20 +430,20 @@ const signup = async (req, res) => {
     // Log subscription history
     await SubscriptionHistory.create({
       restaurantId: restaurant._id,
-      action: hasUsedTrial ? 'subscription_started' : 'trial_started',
+      action: hasUsedTrial ? 'pending_approval' : 'trial_started',
       toPlan: plan,
       amount: amount * 100,
       currency,
-      stripeSubscriptionId: subscription.id,
+      stripeSubscriptionId: subscription ? subscription.id : null,
       metadata: {
-        trialEndDate: subscription.trial_end,
+        trialEndDate: subscription ? subscription.trial_end : null,
         seatCapacity
       }
     });
 
     // Send welcome SMS
     const welcomeMsg = hasUsedTrial 
-      ? `Welcome to QuickCheck! Your account is active. Reply HELP for support.` 
+      ? `Welcome to QuickCheck! Your account is under review for the free trial. We will notify you shortly.` 
       : `Welcome to QuickCheck! Your 30-day free trial has started. Reply HELP for support.`;
     await sendSMS(formatPhoneNumber(phone), welcomeMsg);
 

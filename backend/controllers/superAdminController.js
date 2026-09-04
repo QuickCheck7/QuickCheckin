@@ -228,6 +228,109 @@ const resetPasswordWithOTP = async (req, res) => {
   }
 };
 
+// Approve Trial
+const approveTrial = async (req, res) => {
+  try {
+    const { restaurantId } = req.params;
+    const { getPriceForRestaurant, createStripeSubscription } = require('../utils/stripeService');
+    const SubscriptionHistory = require('../models/SubscriptionHistory');
+
+    const restaurant = await Restaurant.findById(restaurantId);
+    if (!restaurant) return res.status(404).json({ message: 'Restaurant not found.' });
+
+    if (restaurant.subscriptionStatus !== 'pending_approval') {
+      return res.status(400).json({ message: 'Restaurant is not pending approval.' });
+    }
+
+    const { priceId } = getPriceForRestaurant(restaurant.country, restaurant.subscriptionPlan);
+    const subscriptionResult = await createStripeSubscription({
+      customerId: restaurant.stripeCustomerId,
+      priceId,
+      trialDays: 30
+    });
+
+    if (!subscriptionResult.success) {
+      return res.status(500).json({ message: 'Failed to create subscription in Stripe.' });
+    }
+
+    const { subscription } = subscriptionResult;
+    restaurant.stripeSubscriptionId = subscription.id;
+    restaurant.subscriptionStatus = 'trialing';
+    restaurant.isActive = true;
+    restaurant.subscriptionEndDate = new Date(subscription.trial_end * 1000);
+    restaurant.nextBillingDate = new Date(subscription.trial_end * 1000);
+    await restaurant.save();
+
+    await SubscriptionHistory.create({
+      restaurantId: restaurant._id,
+      action: 'trial_approved',
+      toPlan: restaurant.subscriptionPlan,
+      stripeSubscriptionId: subscription.id,
+      metadata: { trialEndDate: subscription.trial_end }
+    });
+
+    const msg = `Your request for a free trial has been approved! You can now access QuickCheck. Reply HELP for support.`;
+    await sendSMS(formatPhoneNumber(restaurant.phone), msg);
+
+    res.json({ message: 'Trial approved successfully.', restaurant });
+  } catch (error) {
+    console.error('Approve trial error:', error);
+    res.status(500).json({ message: 'Server error approving trial.' });
+  }
+};
+
+// Decline Trial
+const declineTrial = async (req, res) => {
+  try {
+    const { restaurantId } = req.params;
+    const { getPriceForRestaurant, createStripeSubscription } = require('../utils/stripeService');
+    const SubscriptionHistory = require('../models/SubscriptionHistory');
+
+    const restaurant = await Restaurant.findById(restaurantId);
+    if (!restaurant) return res.status(404).json({ message: 'Restaurant not found.' });
+
+    if (restaurant.subscriptionStatus !== 'pending_approval') {
+      return res.status(400).json({ message: 'Restaurant is not pending approval.' });
+    }
+
+    const { priceId } = getPriceForRestaurant(restaurant.country, restaurant.subscriptionPlan);
+    const subscriptionResult = await createStripeSubscription({
+      customerId: restaurant.stripeCustomerId,
+      priceId,
+      trialDays: 0 // Immediate charge
+    });
+
+    if (!subscriptionResult.success) {
+      return res.status(500).json({ message: 'Failed to create subscription in Stripe.' });
+    }
+
+    const { subscription } = subscriptionResult;
+    const periodEnd = subscription.current_period_end;
+    
+    restaurant.stripeSubscriptionId = subscription.id;
+    restaurant.subscriptionStatus = 'active';
+    restaurant.isActive = true;
+    restaurant.subscriptionEndDate = new Date(periodEnd * 1000);
+    restaurant.nextBillingDate = new Date(periodEnd * 1000);
+    await restaurant.save();
+
+    await SubscriptionHistory.create({
+      restaurantId: restaurant._id,
+      action: 'trial_declined_billed',
+      toPlan: restaurant.subscriptionPlan,
+      stripeSubscriptionId: subscription.id,
+    });
+
+    const msg = `Your trial request was declined, but your account is now active. You have been billed according to your selected plan.`;
+    await sendSMS(formatPhoneNumber(restaurant.phone), msg);
+
+    res.json({ message: 'Trial declined and account activated.', restaurant });
+  } catch (error) {
+    console.error('Decline trial error:', error);
+    res.status(500).json({ message: 'Server error declining trial.' });
+  }
+};
+
 module.exports = {
   login,
   getRestaurants,
@@ -235,5 +338,7 @@ module.exports = {
   toggleRestaurantStatus,
   deleteRestaurant,
   requestPasswordResetOTP,
-  resetPasswordWithOTP
+  resetPasswordWithOTP,
+  approveTrial,
+  declineTrial
 };

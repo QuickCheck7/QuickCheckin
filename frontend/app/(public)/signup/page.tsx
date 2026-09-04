@@ -353,7 +353,7 @@ function SignupForm() {
                     <p className="text-xs text-muted mt-1">9 digits</p>
                     {hasUsedTrial && (
                       <p className="text-sm text-yellow-600 mt-2 bg-yellow-50 p-2 rounded border border-yellow-200">
-                        This Business Number is already registered for another location. You can continue, but you will not receive another 30-day free trial.
+                        This number is already in use. A small verification will be done before you can access the free trial.
                       </p>
                     )}
                   </div>

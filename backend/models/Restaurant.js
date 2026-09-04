@@ -66,7 +66,7 @@ const restaurantSchema = new mongoose.Schema({
   },
   subscriptionStatus: {
     type: String,
-    enum: ['trialing', 'active', 'past_due', 'canceled', 'unpaid', 'incomplete', 'legacy-free'],
+    enum: ['trialing', 'active', 'past_due', 'canceled', 'unpaid', 'incomplete', 'legacy-free', 'pending_approval'],
     default: 'legacy-free' // Default for existing restaurants
   },
   subscriptionPlan: {

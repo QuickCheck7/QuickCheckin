@@ -7,7 +7,9 @@ const {
   toggleRestaurantStatus,
   deleteRestaurant,
   requestPasswordResetOTP,
-  resetPasswordWithOTP
+  resetPasswordWithOTP,
+  approveTrial,
+  declineTrial
 } = require('../controllers/superAdminController');
 const {
   getRevenueStats,
@@ -28,6 +30,8 @@ router.post('/reset-password-with-otp', resetPasswordWithOTP);
 router.get('/restaurants', authenticateSuperAdmin, getRestaurants);
 router.post('/restaurants', authenticateSuperAdmin, validateRestaurantData, addRestaurant);
 router.patch('/restaurants/:restaurantId/toggle-status', authenticateSuperAdmin, toggleRestaurantStatus);
+router.post('/restaurants/:restaurantId/approve-trial', authenticateSuperAdmin, approveTrial);
+router.post('/restaurants/:restaurantId/decline-trial', authenticateSuperAdmin, declineTrial);
 router.delete('/restaurants/:restaurantId', authenticateSuperAdmin, deleteRestaurant);
 
 // Protected routes - Analytics
