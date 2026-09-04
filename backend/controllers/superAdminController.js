@@ -72,14 +72,12 @@ const addRestaurant = async (req, res) => {
   try {
     const { name, city, email, phone, businessNumber } = req.body;
     
-    // Check if restaurant already exists
-    const existingRestaurant = await Restaurant.findOne({
-      $or: [{ email }, { businessNumber }]
-    });
+    // Check if restaurant email already exists
+    const existingRestaurant = await Restaurant.findOne({ email });
     
     if (existingRestaurant) {
       return res.status(400).json({ 
-        message: 'Restaurant with this email or business number already exists.' 
+        message: 'Restaurant with this email already exists.' 
       });
     }
     

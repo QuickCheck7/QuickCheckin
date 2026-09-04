@@ -69,7 +69,7 @@ const createStripeSubscription = async ({ customerId, priceId, trialDays = 30, t
     // If a specific timestamp is provided, use it (for testing/overrides)
     if (trialEnd) {
       subscriptionData.trial_end = trialEnd;
-    } else {
+    } else if (trialDays > 0) {
       // Otherwise use the standard day count
       subscriptionData.trial_period_days = trialDays;
     }

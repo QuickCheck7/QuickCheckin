@@ -194,6 +194,26 @@ const logout = async (req, res) => {
  * Verify if business number is available
  * GET /api/auth/verify-business-number?number=XX-XXXXX&country=US
  */
+// Function to validate Canadian BN using Luhn algorithm
+const isValidCanadianBN = (bn) => {
+  if (!/^\d{9}$/.test(bn)) return false;
+  
+  let sum = 0;
+  // Alternate weights 2 and 1 for the first 8 digits
+  const weights = [2, 1, 2, 1, 2, 1, 2, 1];
+  
+  for (let i = 0; i < 8; i++) {
+    let digit = parseInt(bn[i]) * weights[i];
+    // If double digits, sum the digits (e.g. 16 -> 1 + 6 = 7)
+    if (digit > 9) digit = digit - 9;
+    sum += digit;
+  }
+  
+  // Calculate check digit (9th digit)
+  const checkDigit = (10 - (sum % 10)) % 10;
+  return checkDigit === parseInt(bn[8]);
+};
+
 const verifyBusinessNumber = async (req, res) => {
   try {
     const { number, country } = req.query;
@@ -218,17 +238,15 @@ const verifyBusinessNumber = async (req, res) => {
       });
     }
 
-    // Check uniqueness
-    const existing = await Restaurant.findOne({ businessNumber: number.trim() });
-    
-    if (existing) {
-      return res.status(409).json({ 
-        available: false,
-        message: 'This business is already registered. Please login instead.' 
-      });
+    // Mathematical checksum for Canada
+    if (country === 'CA' && !isValidCanadianBN(cleanNumber)) {
+      return res.status(400).json({ message: 'Invalid Canadian Business Number format.' });
     }
 
-    res.json({ available: true });
+    // Check if the business is already registered to handle trial eligibility
+    const existing = await Restaurant.findOne({ businessNumber: cleanNumber });
+    
+    res.json({ available: true, hasUsedTrial: !!existing });
   } catch (error) {
     console.error('Verify business number error:', error);
     res.status(500).json({ message: 'Server error verifying business number.' });
@@ -270,6 +288,20 @@ const signup = async (req, res) => {
     // Identity Lock: Normalize business number (remove dashes/spaces)
     const cleanBusinessNumber = businessNumber.trim().replace(/[^0-9]/g, '');
     
+    // Both US EIN and CA BN are 9 digits
+    if (cleanBusinessNumber.length !== 9) {
+      return res.status(400).json({ 
+        message: country === 'US' 
+          ? 'EIN must be 9 digits' 
+          : 'Business Number must be 9 digits' 
+      });
+    }
+
+    // Mathematical checksum for Canada
+    if (country === 'CA' && !isValidCanadianBN(cleanBusinessNumber)) {
+      return res.status(400).json({ message: 'Invalid Canadian Business Number format.' });
+    }
+    
     // Check for existing business number (using normalized version)
     // We search for both raw input AND normalized version to be safe, 
     // though DB should ideally store normalized.
@@ -280,9 +312,7 @@ const signup = async (req, res) => {
       ]
     });
 
-    if (existing) {
-      return res.status(409).json({message: 'This business is already registered.' });
-    }
+    const hasUsedTrial = !!existing;
 
     // Check email uniqueness
     const existingEmail = await Restaurant.findOne({ email: email.toLowerCase() });
@@ -357,7 +387,7 @@ const signup = async (req, res) => {
     const subscriptionResult = await createStripeSubscription({
       customerId: customer.id,
       priceId,
-      trialDays: 30
+      trialDays: hasUsedTrial ? 0 : 30
     });
 
     if (!subscriptionResult.success) {
@@ -367,6 +397,9 @@ const signup = async (req, res) => {
     }
 
     const { subscription } = subscriptionResult;
+    
+    // For trialDays 0, it charges immediately. Period end is current_period_end
+    const periodEnd = subscription.trial_end || subscription.current_period_end;
 
     // Create Restaurant in database
     const restaurant = new Restaurant({
@@ -379,13 +412,12 @@ const signup = async (req, res) => {
       phone,
       seatCapacity,
       subscriptionPlan: plan,
-      subscriptionStatus: 'trialing',
+      subscriptionStatus: hasUsedTrial ? 'active' : 'trialing',
       stripeCustomerId: customer.id,
       stripeSubscriptionId: subscription.id,
       subscriptionStartDate: new Date(),
-      subscriptionEndDate: new Date(subscription.trial_end * 1000),
-      // During trial, next billing date is when trial ends
-      nextBillingDate: new Date(subscription.trial_end * 1000),
+      subscriptionEndDate: new Date(periodEnd * 1000),
+      nextBillingDate: new Date(periodEnd * 1000),
       signupSource: 'self-service',
       isActive: true,
       createdBy: null
@@ -396,7 +428,7 @@ const signup = async (req, res) => {
     // Log subscription history
     await SubscriptionHistory.create({
       restaurantId: restaurant._id,
-      action: 'trial_started',
+      action: hasUsedTrial ? 'subscription_started' : 'trial_started',
       toPlan: plan,
       amount: amount * 100,
       currency,
@@ -408,7 +440,9 @@ const signup = async (req, res) => {
     });
 
     // Send welcome SMS
-    const welcomeMsg = `Welcome to QuickCheck! Your 30-day free trial has started. Reply HELP for support.`;
+    const welcomeMsg = hasUsedTrial 
+      ? `Welcome to QuickCheck! Your account is active. Reply HELP for support.` 
+      : `Welcome to QuickCheck! Your 30-day free trial has started. Reply HELP for support.`;
     await sendSMS(formatPhoneNumber(phone), welcomeMsg);
 
     // Generate OTP for login

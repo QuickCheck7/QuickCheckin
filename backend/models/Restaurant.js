@@ -31,7 +31,6 @@ const restaurantSchema = new mongoose.Schema({
   businessNumber: {
     type: String,
     required: true,
-    unique: true,
     trim: true
   },
   logo: {
