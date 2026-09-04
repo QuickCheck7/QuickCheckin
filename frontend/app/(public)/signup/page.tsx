@@ -48,6 +48,7 @@ function SignupForm() {
   const [loading, setLoading] = useState(false);
   const [verifyingBusinessNumber, setVerifyingBusinessNumber] = useState(false);
   const [businessNumberAvailable, setBusinessNumberAvailable] = useState<boolean | null>(null);
+  const [hasUsedTrial, setHasUsedTrial] = useState<boolean>(false);
 
   const plan = formData.seatCapacity > 50 ? 'Large' : 'Small';
   const price = plan === 'Small' ? 299 : 499;
@@ -56,6 +57,7 @@ function SignupForm() {
   const verifyBusinessNumber = async (number: string, country: string) => {
     if (!number || number.replace(/[^0-9]/g, '').length !== 9) {
       setBusinessNumberAvailable(null);
+      setHasUsedTrial(false);
       return;
     }
 
@@ -65,8 +67,13 @@ function SignupForm() {
         `${process.env.NEXT_PUBLIC_API_URL}/api/auth/verify-business-number?number=${encodeURIComponent(number)}&country=${country}`
       );
       const data = await response.json();
-      setBusinessNumberAvailable(data.available);
-      if (!data.available) {
+      
+      if (response.ok) {
+        setBusinessNumberAvailable(true);
+        setHasUsedTrial(data.hasUsedTrial || false);
+      } else {
+        setBusinessNumberAvailable(false);
+        setHasUsedTrial(false);
         toast.error(data.message);
       }
     } catch (error) {
@@ -98,7 +105,7 @@ function SignupForm() {
         return;
       }
       if (businessNumberAvailable === false) {
-        toast.error('This business number is already registered');
+        toast.error('Invalid Business Number');
         return;
       }
     }
@@ -344,6 +351,11 @@ function SignupForm() {
                       )}
                     </div>
                     <p className="text-xs text-muted mt-1">9 digits</p>
+                    {hasUsedTrial && (
+                      <p className="text-sm text-yellow-600 mt-2 bg-yellow-50 p-2 rounded border border-yellow-200">
+                        This Business Number is already registered for another location. You can continue, but you will not receive another 30-day free trial.
+                      </p>
+                    )}
                   </div>
 
                   <div>
