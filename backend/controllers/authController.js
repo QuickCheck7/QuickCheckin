@@ -471,7 +471,7 @@ const signup = async (req, res) => {
     res.status(201).json({
       message: 'Signup successful! OTP sent to your phone.',
       restaurantId: restaurant._id,
-      trialEndDate: subscription.trial_end,
+      trialEndDate: subscription ? subscription.trial_end : undefined,
       plan,
       amount,
       currency
