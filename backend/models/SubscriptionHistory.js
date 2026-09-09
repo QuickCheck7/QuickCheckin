@@ -9,7 +9,7 @@ const subscriptionHistorySchema = new mongoose.Schema({
   },
   action: {
     type: String,
-    enum: ['created', 'upgraded', 'downgraded', 'renewed', 'canceled', 'payment_failed', 'payment_succeeded', 'refunded', 'trial_started', 'trial_ending'],
+    enum: ['created', 'upgraded', 'downgraded', 'renewed', 'canceled', 'payment_failed', 'payment_succeeded', 'refunded', 'trial_started', 'trial_ending', 'pending_approval'],
     required: true
   },
   fromPlan: {
@@ -30,6 +30,10 @@ const subscriptionHistorySchema = new mongoose.Schema({
     type: String,
     enum: ['USD', 'CAD'],
     default: 'USD'
+  },
+  stripeSubscriptionId: {
+    type: String,
+    default: null
   },
   stripeInvoiceId: {
     type: String,
