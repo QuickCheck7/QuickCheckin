@@ -171,7 +171,9 @@ function SignupForm() {
 
       if (!response.ok) {
         // Show specific error from backend (e.g. Payment Lock message)
-        const errorMsg = data.message || 'Signup failed';
+        const errorMsg = data.error 
+          ? `${data.message} Detail: ${data.error}` 
+          : (data.message || 'Signup failed');
         setError(errorMsg);
         toast.error(errorMsg);
         setLoading(false);
