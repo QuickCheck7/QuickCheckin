@@ -39,6 +39,8 @@ function SignupForm() {
     country: 'CA',
     state: '',
     city: '',
+    address: '',
+    postalCode: '',
     businessNumber: '',
     email: '',
     phone: '',
@@ -95,7 +97,7 @@ function SignupForm() {
   const handleNext = () => {
     // Validate current step
     if (currentStep === 1) {
-      if (!formData.restaurantName || !formData.country || !formData.state || !formData.city) {
+      if (!formData.restaurantName || !formData.country || !formData.state || !formData.city || !formData.address || !formData.postalCode) {
         toast.error('Please fill in all required fields');
         return;
       }
@@ -310,7 +312,35 @@ function SignupForm() {
                       value={formData.city}
                       onChange={handleChange}
                       className="w-full px-4 py-3 border border-border rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent bg-off text-ink"
-                      placeholder="San Francisco"
+                      placeholder="Toronto"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-ink mb-2">Address *</label>
+                    <input
+                      type="text"
+                      name="address"
+                      required
+                      value={formData.address}
+                      onChange={handleChange}
+                      className="w-full px-4 py-3 border border-border rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent bg-off text-ink"
+                      placeholder="123 Main St"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-ink mb-2">
+                      {formData.country === 'US' ? 'ZIP Code' : 'Postal Code'} *
+                    </label>
+                    <input
+                      type="text"
+                      name="postalCode"
+                      required
+                      value={formData.postalCode}
+                      onChange={handleChange}
+                      className="w-full px-4 py-3 border border-border rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent bg-off text-ink"
+                      placeholder={formData.country === 'US' ? '12345' : 'M5V 2H1'}
                     />
                   </div>
                 </motion.div>

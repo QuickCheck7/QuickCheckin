@@ -264,6 +264,8 @@ const signup = async (req, res) => {
       country,
       state,
       city,
+      address,
+      postalCode,
       businessNumber,
       email,
       phone,
@@ -272,7 +274,7 @@ const signup = async (req, res) => {
     } = req.body;
 
     // Validation
-    if (!restaurantName || !country || !city || !businessNumber || !email || !phone || !seatCapacity || !paymentMethodId) {
+    if (!restaurantName || !country || !city || !address || !postalCode || !businessNumber || !email || !phone || !seatCapacity || !paymentMethodId) {
       return res.status(400).json({ message: 'All fields are required.' });
     }
 
@@ -409,6 +411,8 @@ const signup = async (req, res) => {
       country,
       state,
       city,
+      address,
+      postalCode,
       businessNumber: cleanBusinessNumber, // Store ONLY the normalized ID
       email: email.toLowerCase(),
       phone,
