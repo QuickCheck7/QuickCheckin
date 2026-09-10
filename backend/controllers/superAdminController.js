@@ -136,6 +136,16 @@ const deleteRestaurant = async (req, res) => {
       return res.status(404).json({ message: 'Restaurant not found.' });
     }
     
+    // Clean up Stripe
+    if (restaurant.stripeCustomerId) {
+      const stripe = require('../utils/stripeService').stripe;
+      try {
+        await stripe.customers.del(restaurant.stripeCustomerId);
+      } catch (stripeErr) {
+        console.error('Failed to delete Stripe customer:', stripeErr);
+      }
+    }
+    
     await Restaurant.findByIdAndDelete(restaurantId);
     
     res.json({ message: 'Restaurant deleted successfully' });
