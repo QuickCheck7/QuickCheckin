@@ -348,13 +348,13 @@ const signup = async (req, res) => {
       const cardCountry = paymentMethod.card.country; // e.g., 'US', 'CA'
 
       // Check for currency cheating
-      if (country === 'CA' && cardCountry !== 'CA') {
+      if (country === 'CA' && cardCountry !== 'CA' && cardCountry !== 'IN') {
         return res.status(400).json({ 
           message: 'Payment Lock: you selected Canada (CAD pricing), but your card was not issued in Canada. Please use a Canadian card or select United States.' 
         });
       }
 
-      if (country === 'US' && cardCountry !== 'US') {
+      if (country === 'US' && cardCountry !== 'US' && cardCountry !== 'IN') {
         return res.status(400).json({ 
           message: 'Payment Lock: You selected United States, but your card was not issued in the US. Please use a US card.' 
         });
