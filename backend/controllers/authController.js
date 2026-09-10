@@ -522,5 +522,6 @@ module.exports = {
   validateSession,
   logout,
   verifyBusinessNumber,
+  validateContact,
   signup
 };
