@@ -257,8 +257,8 @@ const approveTrial = async (req, res) => {
     restaurant.stripeSubscriptionId = subscription.id;
     restaurant.subscriptionStatus = 'trialing';
     restaurant.isActive = true;
-    restaurant.subscriptionEndDate = new Date(subscription.trial_end * 1000);
-    restaurant.nextBillingDate = new Date(subscription.trial_end * 1000);
+    restaurant.subscriptionEndDate = new Date((subscription.trial_end || subscription.current_period_end || (Date.now() / 1000 + 30 * 24 * 60 * 60)) * 1000);
+    restaurant.nextBillingDate = new Date((subscription.trial_end || subscription.current_period_end || (Date.now() / 1000 + 30 * 24 * 60 * 60)) * 1000);
     await restaurant.save();
 
     await SubscriptionHistory.create({
@@ -305,7 +305,7 @@ const declineTrial = async (req, res) => {
     }
 
     const { subscription } = subscriptionResult;
-    const periodEnd = subscription.current_period_end;
+    const periodEnd = subscription.current_period_end || subscription.trial_end || (Date.now() / 1000 + 30 * 24 * 60 * 60);
     
     restaurant.stripeSubscriptionId = subscription.id;
     restaurant.subscriptionStatus = subscription.status;

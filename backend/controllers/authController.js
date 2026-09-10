@@ -422,7 +422,7 @@ const signup = async (req, res) => {
         return res.status(500).json({ message: 'Subscription creation failed. Please try again.', error: error.message || 'Unknown error' });
       }
       subscription = subscriptionResult.subscription;
-      periodEnd = subscription.trial_end || subscription.current_period_end;
+      periodEnd = subscription.trial_end || subscription.current_period_end || (Date.now() / 1000 + 30 * 24 * 60 * 60);
     }
 
     // Create Restaurant in database
