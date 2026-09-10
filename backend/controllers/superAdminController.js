@@ -269,7 +269,7 @@ const approveTrial = async (req, res) => {
       metadata: { trialEndDate: subscription.trial_end }
     });
 
-    const msg = `Your request for a free trial has been approved! You can now access QuickCheck. Reply HELP for support.`;
+    const msg = `Hey, your admin panel has been approved for the free trial. Now you can use it. You have got the 30 days free trial.`;
     await sendSMS(formatPhoneNumber(restaurant.phone), msg);
 
     res.json({ message: 'Trial approved successfully.', restaurant });

@@ -19,6 +19,7 @@ export default function VerifyOTPPage() {
   const [loading, setLoading] = useState(false);
   const [resendLoading, setResendLoading] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
+  const [isPending, setIsPending] = useState(false);
 
   useEffect(() => {
     if (!restaurantId || !phone) {
@@ -125,6 +126,23 @@ export default function VerifyOTPPage() {
       >
         {/* Left Side - Form */}
         <div className="flex flex-col justify-center p-8 md:p-12 lg:p-16">
+          {isPending ? (
+          <div className="text-center py-8">
+            <div className="inline-flex items-center justify-center w-16 h-16 bg-orange-100 rounded-full mb-4">
+              <Lock className="w-8 h-8 text-orange-500" />
+            </div>
+            <h2 className="text-3xl font-display font-bold text-ink mb-4">
+              Application Under Review
+            </h2>
+            <p className="text-muted text-lg mb-6 leading-relaxed">
+              You will get your dashboard access online. You will be approved or rejected by the admin within 72 hours.
+            </p>
+            <Link href="/" className="inline-flex bg-primary text-white py-3 px-6 rounded-xl font-semibold hover:bg-primary/90 transition">
+              Return Home
+            </Link>
+          </div>
+        ) : (
+          <>
           <div className="mb-8">
             <Link href="/" className="flex items-center gap-3 mb-6 hover:opacity-80 transition-opacity">
               <div className="p-2 bg-primary/10 rounded-xl">
@@ -195,6 +213,8 @@ export default function VerifyOTPPage() {
               )}
             </button>
           </div>
+          </>
+        )}
         </div>
 
         {/* Right Side - Image */}
@@ -210,4 +230,3 @@ export default function VerifyOTPPage() {
     </div>
   );
 }
-

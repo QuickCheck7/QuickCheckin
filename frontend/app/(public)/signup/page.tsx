@@ -94,7 +94,7 @@ function SignupForm() {
     return () => clearTimeout(timer);
   }, [formData.businessNumber, formData.country]);
 
-  const handleNext = () => {
+  const handleNext = async () => {
     // Validate current step
     if (currentStep === 1) {
       if (!formData.restaurantName || !formData.country || !formData.state || !formData.city || !formData.address || !formData.postalCode) {
@@ -108,6 +108,27 @@ function SignupForm() {
       }
       if (businessNumberAvailable === false) {
         toast.error('Invalid Business Number');
+        return;
+      }
+      
+      // Check email and phone uniqueness
+      const loadingToast = toast.loading('Verifying details...');
+      try {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/validate-contact`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: formData.email, phone: formData.phone })
+        });
+        const data = await res.json();
+        toast.dismiss(loadingToast);
+        
+        if (!res.ok) {
+          toast.error(data.message);
+          return;
+        }
+      } catch (err) {
+        toast.dismiss(loadingToast);
+        toast.error('Verification failed. Please check connection.');
         return;
       }
     }

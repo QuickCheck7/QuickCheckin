@@ -257,6 +257,26 @@ const verifyBusinessNumber = async (req, res) => {
  * Restaurant Self-Service Signup
  * POST /api/auth/signup
  */
+
+// Validate if email and phone are unique before proceeding
+const validateContact = async (req, res) => {
+  try {
+    const { email, phone } = req.body;
+    if (!email || !phone) return res.status(400).json({ message: 'Email and phone required' });
+    
+    const existingEmail = await Restaurant.findOne({ email: email.toLowerCase() });
+    if (existingEmail) return res.status(409).json({ message: 'This email is already registered.' });
+    
+    // Normalize phone before search to be safe, but just match exact string for now
+    const existingPhone = await Restaurant.findOne({ phone: phone.trim() });
+    if (existingPhone) return res.status(409).json({ message: 'This phone number is already registered.' });
+    
+    res.json({ available: true });
+  } catch(error) {
+    res.status(500).json({ message: 'Server error validating contact.' });
+  }
+};
+
 const signup = async (req, res) => {
   try {
     const {
@@ -440,16 +460,26 @@ const signup = async (req, res) => {
       currency,
       stripeSubscriptionId: subscription ? subscription.id : undefined,
       metadata: {
-        trialEndDate: subscription ? subscription.trial_end : undefined,
+        trialEndDate: subscription ? subscription.trial_end : undefined, pendingApproval: hasUsedTrial,
         seatCapacity
       }
     });
 
     // Send welcome SMS
     const welcomeMsg = hasUsedTrial 
-      ? `Welcome to QuickCheck! Your account is under review for the free trial. We will notify you shortly.` 
+      ? `Welcome to QuickCheck! Your admin panel is under review and will be approved or rejected within 72 hours.` 
       : `Welcome to QuickCheck! Your 30-day free trial has started. Reply HELP for support.`;
     await sendSMS(formatPhoneNumber(phone), welcomeMsg);
+
+    
+    // Send SMS to Super Admin if duplicate BN
+    if (hasUsedTrial) {
+      const superAdminPhone = process.env.SUPER_ADMIN_PHONE;
+      if (superAdminPhone) {
+        const adminMsg = `Hey, ${restaurantName} is trying to create a new account with the business number ${cleanBusinessNumber}. You can approve/reject it from the super admin panel.`;
+        await sendSMS(superAdminPhone, adminMsg);
+      }
+    }
 
     // Generate OTP for login
     const otp = generateOTP();
@@ -471,7 +501,7 @@ const signup = async (req, res) => {
     res.status(201).json({
       message: 'Signup successful! OTP sent to your phone.',
       restaurantId: restaurant._id,
-      trialEndDate: subscription ? subscription.trial_end : undefined,
+      trialEndDate: subscription ? subscription.trial_end : undefined, pendingApproval: hasUsedTrial,
       plan,
       amount,
       currency
