@@ -46,7 +46,7 @@ const login = async (req, res) => {
     });
   } catch (error) {
     console.error('Login error:', error);
-    res.status(500).json({ message: 'Server error during login.' });
+    res.status(500).json({ message: 'Server error during login.', error: error.message || 'Unknown error' });
   }
 };
 
@@ -63,7 +63,7 @@ const getRestaurants = async (req, res) => {
     });
   } catch (error) {
     console.error('Get restaurants error:', error);
-    res.status(500).json({ message: 'Server error fetching restaurants.' });
+    res.status(500).json({ message: 'Server error fetching restaurants.', error: error.message || 'Unknown error' });
   }
 };
 
@@ -99,7 +99,7 @@ const addRestaurant = async (req, res) => {
     });
   } catch (error) {
     console.error('Add restaurant error:', error);
-    res.status(500).json({ message: 'Server error adding restaurant.' });
+    res.status(500).json({ message: 'Server error adding restaurant.', error: error.message || 'Unknown error' });
   }
 };
 
@@ -122,7 +122,7 @@ const toggleRestaurantStatus = async (req, res) => {
     });
   } catch (error) {
     console.error('Toggle restaurant status error:', error);
-    res.status(500).json({ message: 'Server error toggling restaurant status.' });
+    res.status(500).json({ message: 'Server error toggling restaurant status.', error: error.message || 'Unknown error' });
   }
 };
 
@@ -141,7 +141,7 @@ const deleteRestaurant = async (req, res) => {
     res.json({ message: 'Restaurant deleted successfully' });
   } catch (error) {
     console.error('Delete restaurant error:', error);
-    res.status(500).json({ message: 'Server error deleting restaurant.' });
+    res.status(500).json({ message: 'Server error deleting restaurant.', error: error.message || 'Unknown error' });
   }
 };
 
@@ -177,7 +177,7 @@ const requestPasswordResetOTP = async (req, res) => {
     const smsSent = await sendSMS(formattedPhone, message);
 
     if (!smsSent) {
-      return res.status(500).json({ message: 'Failed to send OTP. Please try again.' });
+      return res.status(500).json({ message: 'Failed to send OTP. Please try again.', error: error.message || 'Unknown error' });
     }
 
     res.json({
@@ -185,7 +185,7 @@ const requestPasswordResetOTP = async (req, res) => {
     });
   } catch (error) {
     console.error('Request OTP error:', error);
-    res.status(500).json({ message: 'Server error generating OTP.' });
+    res.status(500).json({ message: 'Server error generating OTP.', error: error.message || 'Unknown error' });
   }
 };
 
@@ -224,7 +224,7 @@ const resetPasswordWithOTP = async (req, res) => {
     res.json({ message: 'Password reset successfully' });
   } catch (error) {
     console.error('Reset password error:', error);
-    res.status(500).json({ message: 'Server error resetting password.' });
+    res.status(500).json({ message: 'Server error resetting password.', error: error.message || 'Unknown error' });
   }
 };
 
@@ -250,7 +250,7 @@ const approveTrial = async (req, res) => {
     });
 
     if (!subscriptionResult.success) {
-      return res.status(500).json({ message: 'Failed to create subscription in Stripe.' });
+      return res.status(500).json({ message: 'Failed to create subscription in Stripe.', error: error.message || 'Unknown error' });
     }
 
     const { subscription } = subscriptionResult;
@@ -275,7 +275,7 @@ const approveTrial = async (req, res) => {
     res.json({ message: 'Trial approved successfully.', restaurant });
   } catch (error) {
     console.error('Approve trial error:', error);
-    res.status(500).json({ message: 'Server error approving trial.' });
+    res.status(500).json({ message: 'Server error approving trial.', error: error.message || 'Unknown error' });
   }
 };
 
@@ -301,7 +301,7 @@ const declineTrial = async (req, res) => {
     });
 
     if (!subscriptionResult.success) {
-      return res.status(500).json({ message: 'Failed to create subscription in Stripe.' });
+      return res.status(500).json({ message: 'Failed to create subscription in Stripe.', error: error.message || 'Unknown error' });
     }
 
     const { subscription } = subscriptionResult;
@@ -327,7 +327,7 @@ const declineTrial = async (req, res) => {
     res.json({ message: 'Trial declined and account activated.', restaurant });
   } catch (error) {
     console.error('Decline trial error:', error);
-    res.status(500).json({ message: 'Server error declining trial.' });
+    res.status(500).json({ message: 'Server error declining trial.', error: error.message || 'Unknown error' });
   }
 };
 

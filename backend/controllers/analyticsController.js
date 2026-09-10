@@ -74,7 +74,7 @@ const getRevenueStats = async (req, res) => {
     });
   } catch (error) {
     console.error('Get revenue stats error:', error);
-    res.status(500).json({ message: 'Server error fetching revenue stats.' });
+    res.status(500).json({ message: 'Server error fetching revenue stats.', error: error.message || 'Unknown error' });
   }
 };
 
@@ -114,7 +114,7 @@ const getSubscriptionStats = async (req, res) => {
     res.json(stats);
   } catch (error) {
     console.error('Get subscription stats error:', error);
-    res.status(500).json({ message: 'Server error fetching subscription stats.' });
+    res.status(500).json({ message: 'Server error fetching subscription stats.', error: error.message || 'Unknown error' });
   }
 };
 
@@ -148,7 +148,7 @@ const getRecentPayments = async (req, res) => {
     res.json({ payments: formatted });
   } catch (error) {
     console.error('Get recent payments error:', error);
-    res.status(500).json({ message: 'Server error fetching payments.' });
+    res.status(500).json({ message: 'Server error fetching payments.', error: error.message || 'Unknown error' });
   }
 };
 
@@ -210,7 +210,7 @@ const getRevenueBreakdown = async (req, res) => {
     });
   } catch (error) {
     console.error('Get revenue breakdown error:', error);
-    res.status(500).json({ message: 'Server error fetching breakdown.' });
+    res.status(500).json({ message: 'Server error fetching breakdown.', error: error.message || 'Unknown error' });
   }
 };
 
@@ -277,7 +277,7 @@ const exportAnalytics = async (req, res) => {
     }
   } catch (error) {
     console.error('Export analytics error:', error);
-    res.status(500).json({ message: 'Server error exporting data.' });
+    res.status(500).json({ message: 'Server error exporting data.', error: error.message || 'Unknown error' });
   }
 };
 

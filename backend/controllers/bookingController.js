@@ -146,7 +146,7 @@ const createBooking = async (req, res) => {
     });
   } catch (error) {
     console.error('Create booking error:', error);
-    res.status(500).json({ message: 'Server error creating booking.' });
+    res.status(500).json({ message: 'Server error creating booking.', error: error.message || 'Unknown error' });
   }
 };
 
@@ -219,7 +219,7 @@ const notifyCustomer = async (req, res) => {
     res.json({ message: 'Customer notified successfully' });
   } catch (error) {
     console.error('Notify customer error:', error);
-    res.status(500).json({ message: 'Server error notifying customer.' });
+    res.status(500).json({ message: 'Server error notifying customer.', error: error.message || 'Unknown error' });
   }
 };
 
@@ -321,7 +321,7 @@ const markSeated = async (req, res) => {
     });
   } catch (error) {
     console.error('Mark seated error:', error);
-    res.status(500).json({ message: 'Server error marking customer seated.' });
+    res.status(500).json({ message: 'Server error marking customer seated.', error: error.message || 'Unknown error' });
   }
 };
 
@@ -390,7 +390,7 @@ const cancelBooking = async (req, res) => {
     res.json({ message: 'Booking cancelled successfully' });
   } catch (error) {
     console.error('Cancel booking error:', error);
-    res.status(500).json({ message: 'Server error cancelling booking.' });
+    res.status(500).json({ message: 'Server error cancelling booking.', error: error.message || 'Unknown error' });
   }
 };
 
@@ -449,7 +449,7 @@ const completeBooking = async (req, res) => {
     res.json({ message: 'Booking completed successfully' });
   } catch (error) {
     console.error('Complete booking error:', error);
-    res.status(500).json({ message: 'Server error completing booking.' });
+    res.status(500).json({ message: 'Server error completing booking.', error: error.message || 'Unknown error' });
   }
 };
 
@@ -563,7 +563,7 @@ const handleCustomerResponse = async (req, res) => {
     res.json({ message: 'Customer response processed successfully' });
   } catch (error) {
     console.error('Handle customer response error:', error);
-    res.status(500).json({ message: 'Server error processing response.' });
+    res.status(500).json({ message: 'Server error processing response.', error: error.message || 'Unknown error' });
   }
 };
 
@@ -593,7 +593,7 @@ const getBookingStatus = async (req, res) => {
     });
   } catch (error) {
     console.error('Get booking status error:', error);
-    res.status(500).json({ message: 'Server error fetching booking status.' });
+    res.status(500).json({ message: 'Server error fetching booking status.', error: error.message || 'Unknown error' });
   }
 };
 
@@ -626,7 +626,7 @@ const getBookings = async (req, res) => {
     res.json({ bookings });
   } catch (error) {
     console.error('Get bookings error:', error);
-    res.status(500).json({ message: 'Server error fetching bookings.' });
+    res.status(500).json({ message: 'Server error fetching bookings.', error: error.message || 'Unknown error' });
   }
 };
 
@@ -687,7 +687,7 @@ const getDashboardStats = async (req, res) => {
     });
   } catch (error) {
     console.error('Get dashboard stats error:', error);
-    res.status(500).json({ message: 'Server error fetching stats.' });
+    res.status(500).json({ message: 'Server error fetching stats.', error: error.message || 'Unknown error' });
   }
 };
 
@@ -719,7 +719,7 @@ const getWaitTimes = async (req, res) => {
     res.json({ waitTimes });
   } catch (error) {
     console.error('Get wait times error:', error);
-    res.status(500).json({ message: 'Server error fetching wait times.' });
+    res.status(500).json({ message: 'Server error fetching wait times.', error: error.message || 'Unknown error' });
   }
 };
 

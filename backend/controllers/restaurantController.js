@@ -48,13 +48,13 @@ const requestLoginOTP = async (req, res) => {
     const smsSent = await sendSMS(formattedPhone, message);
 
     if (!smsSent.success) {
-      return res.status(500).json({ message: 'Failed to send OTP. Please try again.' });
+      return res.status(500).json({ message: 'Failed to send OTP. Please try again.', error: error.message || 'Unknown error' });
     }
 
     res.json({ message: 'OTP sent successfully to your phone number' });
   } catch (error) {
     console.error('Request login OTP error:', error);
-    res.status(500).json({ message: 'Server error sending OTP.' });
+    res.status(500).json({ message: 'Server error sending OTP.', error: error.message || 'Unknown error' });
   }
 };
 
@@ -116,7 +116,7 @@ const verifyLoginOTP = async (req, res) => {
     });
   } catch (error) {
     console.error('Verify login OTP error:', error);
-    res.status(500).json({ message: 'Server error verifying OTP.' });
+    res.status(500).json({ message: 'Server error verifying OTP.', error: error.message || 'Unknown error' });
   }
 };
 
@@ -158,7 +158,7 @@ const getSettings = async (req, res) => {
     });
   } catch (error) {
     console.error('Get settings error:', error);
-    res.status(500).json({ message: 'Server error fetching settings.' });
+    res.status(500).json({ message: 'Server error fetching settings.', error: error.message || 'Unknown error' });
   }
 };
 
@@ -200,7 +200,7 @@ const updateSettings = async (req, res) => {
     });
   } catch (error) {
     console.error('Update settings error:', error);
-    res.status(500).json({ message: 'Server error updating settings.' });
+    res.status(500).json({ message: 'Server error updating settings.', error: error.message || 'Unknown error' });
   }
 };
 
@@ -276,7 +276,7 @@ const updateTables = async (req, res) => {
     });
   } catch (error) {
     console.error('Update tables error:', error);
-    res.status(500).json({ message: 'Server error updating tables.' });
+    res.status(500).json({ message: 'Server error updating tables.', error: error.message || 'Unknown error' });
   }
 };
 
@@ -319,7 +319,7 @@ const getDashboardData = async (req, res) => {
     });
   } catch (error) {
     console.error('Get dashboard data error:', error);
-    res.status(500).json({ message: 'Server error fetching dashboard data.' });
+    res.status(500).json({ message: 'Server error fetching dashboard data.', error: error.message || 'Unknown error' });
   }
 };
 
@@ -400,7 +400,7 @@ const getMessages = async (req, res) => {
     res.json({ conversations: sortedConversations });
   } catch (error) {
     console.error('Get messages error:', error);
-    res.status(500).json({ message: 'Server error fetching messages.' });
+    res.status(500).json({ message: 'Server error fetching messages.', error: error.message || 'Unknown error' });
   }
 };
 
@@ -480,7 +480,7 @@ const updateTableStatus = async (req, res) => {
     });
   } catch (error) {
     console.error('Update table status error:', error);
-    res.status(500).json({ message: 'Server error updating table status.' });
+    res.status(500).json({ message: 'Server error updating table status.', error: error.message || 'Unknown error' });
   }
 };
 
@@ -502,7 +502,7 @@ const updateLogo = async (req, res) => {
     });
   } catch (error) {
     console.error('Update logo error:', error);
-    res.status(500).json({ message: 'Server error updating logo.' });
+    res.status(500).json({ message: 'Server error updating logo.', error: error.message || 'Unknown error' });
   }
 };
 
@@ -577,7 +577,7 @@ const createWalkIn = async (req, res) => {
 
   } catch (error) {
     console.error('Create walk-in error:', error);
-    res.status(500).json({ message: 'Server error creating walk-in.' });
+    res.status(500).json({ message: 'Server error creating walk-in.', error: error.message || 'Unknown error' });
   }
 };
 

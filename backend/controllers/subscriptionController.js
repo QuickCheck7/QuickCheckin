@@ -60,7 +60,7 @@ const getSubscription = async (req, res) => {
     });
   } catch (error) {
     console.error('Get subscription error:', error);
-    res.status(500).json({ message: 'Server error fetching subscription.' });
+    res.status(500).json({ message: 'Server error fetching subscription.', error: error.message || 'Unknown error' });
   }
 };
 
@@ -98,7 +98,7 @@ const upgradeSubscription = async (req, res) => {
     });
 
     if (!result.success) {
-      return res.status(500).json({ message: 'Failed to upgrade subscription.' });
+      return res.status(500).json({ message: 'Failed to upgrade subscription.', error: error.message || 'Unknown error' });
     }
 
     // Update restaurant
@@ -128,7 +128,7 @@ const upgradeSubscription = async (req, res) => {
     });
   } catch (error) {
     console.error('Upgrade subscription error:', error);
-    res.status(500).json({ message: 'Server error upgrading subscription.' });
+    res.status(500).json({ message: 'Server error upgrading subscription.', error: error.message || 'Unknown error' });
   }
 };
 
@@ -182,7 +182,7 @@ const downgradeSubscription = async (req, res) => {
     });
   } catch (error) {
     console.error('Downgrade subscription error:', error);
-    res.status(500).json({ message: 'Server error scheduling downgrade.' });
+    res.status(500).json({ message: 'Server error scheduling downgrade.', error: error.message || 'Unknown error' });
   }
 };
 
@@ -209,7 +209,7 @@ const cancelDowngrade = async (req, res) => {
     res.json({ message: 'Downgrade canceled successfully' });
   } catch (error) {
     console.error('Cancel downgrade error:', error);
-    res.status(500).json({ message: 'Server error canceling downgrade.' });
+    res.status(500).json({ message: 'Server error canceling downgrade.', error: error.message || 'Unknown error' });
   }
 };
 
@@ -235,7 +235,7 @@ const cancelSubscription = async (req, res) => {
     const result = await cancelStripeSubscription(restaurant.stripeSubscriptionId, immediate);
 
     if (!result.success) {
-      return res.status(500).json({ message: 'Failed to cancel subscription.' });
+      return res.status(500).json({ message: 'Failed to cancel subscription.', error: error.message || 'Unknown error' });
     }
 
     // Update restaurant
@@ -269,7 +269,7 @@ const cancelSubscription = async (req, res) => {
     });
   } catch (error) {
     console.error('Cancel subscription error:', error);
-    res.status(500).json({ message: 'Server error canceling subscription.' });
+    res.status(500).json({ message: 'Server error canceling subscription.', error: error.message || 'Unknown error' });
   }
 };
 
@@ -310,7 +310,7 @@ const updatePaymentMethod = async (req, res) => {
     res.json({ message: 'Payment method updated successfully' });
   } catch (error) {
     console.error('Update payment method error:', error);
-    res.status(500).json({ message: 'Failed to update payment method.' });
+    res.status(500).json({ message: 'Failed to update payment method.', error: error.message || 'Unknown error' });
   }
 };
 
@@ -350,7 +350,7 @@ const updateSeatCapacity = async (req, res) => {
         });
 
         if (!result.success) {
-          return res.status(500).json({ message: 'Failed to upgrade plan automatically.' });
+          return res.status(500).json({ message: 'Failed to upgrade plan automatically.', error: error.message || 'Unknown error' });
         }
 
         restaurant.subscriptionPlan = 'large';
@@ -397,7 +397,7 @@ const updateSeatCapacity = async (req, res) => {
     });
   } catch (error) {
     console.error('Update seat capacity error:', error);
-    res.status(500).json({ message: 'Server error updating seat capacity.' });
+    res.status(500).json({ message: 'Server error updating seat capacity.', error: error.message || 'Unknown error' });
   }
 };
 

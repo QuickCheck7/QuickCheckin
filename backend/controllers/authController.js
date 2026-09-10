@@ -51,13 +51,13 @@ const requestLoginOTP = async (req, res) => {
     const smsResult = await sendSMS(formattedPhone, message);
 
     if (!smsResult.success) {
-      return res.status(500).json({ message: 'Failed to send OTP. Please try again.' });
+      return res.status(500).json({ message: 'Failed to send OTP. Please try again.', error: error.message || 'Unknown error' });
     }
 
     res.json({ message: 'OTP sent successfully to your phone number' });
   } catch (error) {
     console.error('Request login OTP error:', error);
-    res.status(500).json({ message: 'Server error sending OTP.' });
+    res.status(500).json({ message: 'Server error sending OTP.', error: error.message || 'Unknown error' });
   }
 };
 
@@ -141,7 +141,7 @@ const verifyLoginOTP = async (req, res) => {
     });
   } catch (error) {
     console.error('Verify login OTP error:', error);
-    res.status(500).json({ message: 'Server error verifying OTP.' });
+    res.status(500).json({ message: 'Server error verifying OTP.', error: error.message || 'Unknown error' });
   }
 };
 
@@ -172,7 +172,7 @@ const validateSession = async (req, res, next) => {
     next();
   } catch (error) {
     console.error('Validate session error:', error);
-    res.status(500).json({ message: 'Server error validating session.' });
+    res.status(500).json({ message: 'Server error validating session.', error: error.message || 'Unknown error' });
   }
 };
 
@@ -186,7 +186,7 @@ const logout = async (req, res) => {
     res.json({ message: 'Logged out successfully' });
   } catch (error) {
     console.error('Logout error:', error);
-    res.status(500).json({ message: 'Server error during logout.' });
+    res.status(500).json({ message: 'Server error during logout.', error: error.message || 'Unknown error' });
   }
 };
 
@@ -249,7 +249,7 @@ const verifyBusinessNumber = async (req, res) => {
     res.json({ available: true, hasUsedTrial: !!existing });
   } catch (error) {
     console.error('Verify business number error:', error);
-    res.status(500).json({ message: 'Server error verifying business number.' });
+    res.status(500).json({ message: 'Server error verifying business number.', error: error.message || 'Unknown error' });
   }
 };
 
@@ -273,7 +273,7 @@ const validateContact = async (req, res) => {
     
     res.json({ available: true });
   } catch(error) {
-    res.status(500).json({ message: 'Server error validating contact.' });
+    res.status(500).json({ message: 'Server error validating contact.', error: error.message || 'Unknown error' });
   }
 };
 
@@ -382,7 +382,7 @@ const signup = async (req, res) => {
     });
 
     if (!customerResult.success) {
-      return res.status(500).json({ message: 'Payment processing error. Please try again.' });
+      return res.status(500).json({ message: 'Payment processing error. Please try again.', error: error.message || 'Unknown error' });
     }
 
     const { customer } = customerResult;
@@ -419,7 +419,7 @@ const signup = async (req, res) => {
       if (!subscriptionResult.success) {
         // Clean up customer
         await stripe.customers.del(customer.id);
-        return res.status(500).json({ message: 'Subscription creation failed. Please try again.' });
+        return res.status(500).json({ message: 'Subscription creation failed. Please try again.', error: error.message || 'Unknown error' });
       }
       subscription = subscriptionResult.subscription;
       periodEnd = subscription.trial_end || subscription.current_period_end;

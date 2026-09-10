@@ -117,7 +117,7 @@ async function api<T>(path: string, init?: RequestInit): Promise<T> {
   }
 
   if (!res.ok) {
-    const msg = (data && (data.message || data.error)) || `Request failed (${res.status})`;
+    const msg = data ? (data.error && data.message ? `${data.message} Detail: ${data.error}` : (data.error || data.message || `Request failed (${res.status})`)) : `Request failed (${res.status})`;
     throw new Error(msg);
   }
   return data as T;
