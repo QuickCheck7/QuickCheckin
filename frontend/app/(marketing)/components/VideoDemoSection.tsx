@@ -21,7 +21,7 @@ export function VideoDemoSection() {
         <div className="relative w-full aspect-video rounded-2xl overflow-hidden shadow-soft border border-border bg-panel">
           <iframe
             className="absolute top-0 left-0 w-full h-full"
-            src="https://www.youtube.com/embed/dexxL23lAbo?cc_load_policy=0&cc_lang_pref=xx"
+            src="https://www.youtube.com/embed/dexxL23lAbo?cc_load_policy=0&cc_lang_pref=xx&vq=hd1080"
             title="QuickCheck System Overview"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             allowFullScreen
