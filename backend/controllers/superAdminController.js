@@ -146,6 +146,16 @@ const deleteRestaurant = async (req, res) => {
       }
     }
     
+        // Send SMS if rejecting a pending trial
+    if (restaurant.subscriptionStatus === 'pending_approval' && restaurant.phone) {
+      try {
+        const msg = 'Your request for a QuickCheck account has been rejected. If you have any questions, please contact support.';
+        await sendSMS(formatPhoneNumber(restaurant.phone), msg);
+      } catch (smsErr) {
+        console.error('Failed to send rejection SMS:', smsErr);
+      }
+    }
+
     await Restaurant.findByIdAndDelete(restaurantId);
     
     res.json({ message: 'Restaurant deleted successfully' });
