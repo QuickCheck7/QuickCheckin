@@ -85,7 +85,9 @@ class ApiClient {
     options: RequestInit = {}
   ): Promise<{ data?: T; error?: ApiError }> {
     try {
-      const token = typeof window !== 'undefined' ? localStorage.getItem('sessionToken') : null;
+      const token = typeof window !== 'undefined' 
+        ? (localStorage.getItem('sessionToken') || localStorage.getItem('token') || localStorage.getItem('preftech_token'))
+        : null;
       
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
@@ -104,8 +106,10 @@ class ApiClient {
       const data = await response.json();
 
       if (!response.ok) {
-        if (response.status === 401 && typeof window !== 'undefined') {
+        // Only clear auth credentials if the session validation endpoint specifically returns 401
+        if (response.status === 401 && typeof window !== 'undefined' && endpoint === '/api/restaurant/me') {
           localStorage.removeItem('sessionToken');
+          localStorage.removeItem('token');
         }
         return {
           error: {
@@ -283,7 +287,9 @@ class ApiClient {
 
   // SSE URL helper
   getSSEUrl(restaurantId: string): string {
-    const token = typeof window !== 'undefined' ? localStorage.getItem('sessionToken') : '';
+    const token = typeof window !== 'undefined' 
+      ? (localStorage.getItem('sessionToken') || localStorage.getItem('token') || localStorage.getItem('preftech_token') || '')
+      : '';
     return `${this.baseUrl}/api/sse/${restaurantId}/events?token=${token}`;
   }
 }

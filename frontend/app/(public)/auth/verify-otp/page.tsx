@@ -96,6 +96,7 @@ export default function VerifyOTPPage() {
 
       // Store session token
       localStorage.setItem('sessionToken', data.sessionToken);
+      localStorage.setItem('token', data.sessionToken);
       localStorage.setItem('restaurant', JSON.stringify(data.restaurant));
 
       toast.success('Account verified! Redirecting to dashboard...');

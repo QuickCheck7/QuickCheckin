@@ -24,130 +24,170 @@ interface AuthState {
 
 const TOKEN_KEY = 'sessionToken'; // Must match what verify-otp page uses
 
+const getInitialRestaurant = () => {
+  if (typeof window === 'undefined') return null;
+  try {
+    const stored = localStorage.getItem('restaurant');
+    return stored ? JSON.parse(stored) : null;
+  } catch {
+    return null;
+  }
+};
 
-export const useAuthStore = create<AuthState>((set, get) => ({
-  isAuthenticated: false,
-  userRole: null,
-  phoneNumber: '',
-  currentStep: 'login',
-  otp: '',
-  isLoading: false,
-  restaurantData: null,
-  token: null,
+const getInitialToken = () => {
+  if (typeof window === 'undefined') return null;
+  return localStorage.getItem('sessionToken') || localStorage.getItem('token') || null;
+};
 
-  login: async (phone: string, role: UserRole) => {
-    set({ isLoading: true });
-    
-    const { data, error } = await apiClient.requestOTP(phone, role);
-    
-    set({ isLoading: false });
-    
-    if (error) {
-      toast.error(error.message || 'Failed to send OTP');
-      return;
-    }
+export const useAuthStore = create<AuthState>((set, get) => {
+  const initialToken = getInitialToken();
+  const initialRestaurant = getInitialRestaurant();
 
-    set({
-      phoneNumber: phone,
-      userRole: role,
-      currentStep: 'otp',
-      otp: '',
-    });
+  return {
+    isAuthenticated: !!initialToken,
+    userRole: initialToken ? 'admin' : null,
+    phoneNumber: '',
+    currentStep: initialToken ? 'authenticated' : 'login',
+    otp: '',
+    isLoading: false,
+    restaurantData: initialRestaurant,
+    token: initialToken,
 
-    toast.success('OTP sent to your phone number');
-  },
-
-  verifyOtp: async (enteredOtp: string) => {
-    const { phoneNumber, userRole } = get();
-    
-    if (!phoneNumber || !userRole) {
-      toast.error('Session expired. Please login again.');
-      return false;
-    }
-
-    set({ isLoading: true });
-    
-    const { data, error } = await apiClient.verifyOTP(phoneNumber, userRole, enteredOtp);
-    
-    set({ isLoading: false });
-    
-    if (error) {
-      toast.error(error.message || 'Invalid OTP');
-      return false;
-    }
-
-    if (data && data.token) {
-      // Store token in localStorage
-      localStorage.setItem(TOKEN_KEY, data.token);
+    login: async (phone: string, role: UserRole) => {
+      set({ isLoading: true });
       
-      set({
-        isAuthenticated: true,
-        currentStep: 'authenticated',
-        otp: '',
-        restaurantData: data.restaurant || null,
-        token: data.token,
-      });
-
-      toast.success('Login successful!');
-      return true;
-    }
-
-    return false;
-  },
-
-  logout: () => {
-    // Clear token from localStorage
-    localStorage.removeItem(TOKEN_KEY);
-    
-    set({
-      isAuthenticated: false,
-      userRole: null,
-      phoneNumber: '',
-      currentStep: 'login',
-      otp: '',
-      isLoading: false,
-      restaurantData: null,
-      token: null,
-    });
-  },
-
-  setOtp: (otp: string) => {
-    set({ otp });
-  },
-
-  hydrate: async () => {
-    const token = localStorage.getItem(TOKEN_KEY);
-    
-    if (!token) {
-      return;
-    }
-
-    set({ isLoading: true });
-
-    try {
-      // Verify token with backend
-      const { data, error } = await apiClient.validateToken(token);
+      const { data, error } = await apiClient.requestOTP(phone, role);
       
-      if (error || !data) {
-        // Token is invalid, clear it
-        localStorage.removeItem(TOKEN_KEY);
-        set({ isLoading: false });
+      set({ isLoading: false });
+      
+      if (error) {
+        toast.error(error.message || 'Failed to send OTP');
         return;
       }
 
-      // Token is valid, restore auth state
       set({
-        isAuthenticated: true,
-        userRole: data.role,
-        phoneNumber: data.phone,
-        currentStep: 'authenticated',
-        restaurantData: data.restaurant,
-        token,
-        isLoading: false,
+        phoneNumber: phone,
+        userRole: role,
+        currentStep: 'otp',
+        otp: '',
       });
-    } catch (error) {
-      localStorage.removeItem(TOKEN_KEY);
+
+      toast.success('OTP sent to your phone number');
+    },
+
+    verifyOtp: async (enteredOtp: string) => {
+      const { phoneNumber, userRole } = get();
+      
+      if (!phoneNumber || !userRole) {
+        toast.error('Session expired. Please login again.');
+        return false;
+      }
+
+      set({ isLoading: true });
+      
+      const { data, error } = await apiClient.verifyOTP(phoneNumber, userRole, enteredOtp);
+      
       set({ isLoading: false });
-    }
-  },
-}));
+      
+      if (error) {
+        toast.error(error.message || 'Invalid OTP');
+        return false;
+      }
+
+      const authToken = data?.token || (data as any)?.sessionToken;
+      if (authToken) {
+        // Store token in localStorage under both keys for full compatibility
+        localStorage.setItem(TOKEN_KEY, authToken);
+        localStorage.setItem('token', authToken);
+        if (data?.restaurant) {
+          localStorage.setItem('restaurant', JSON.stringify(data.restaurant));
+        }
+        
+        set({
+          isAuthenticated: true,
+          userRole: userRole || 'admin',
+          currentStep: 'authenticated',
+          otp: '',
+          restaurantData: data?.restaurant || null,
+          token: authToken,
+        });
+
+        toast.success('Login successful!');
+        return true;
+      }
+
+      return false;
+    },
+
+    logout: () => {
+      // Clear token from localStorage
+      localStorage.removeItem(TOKEN_KEY);
+      localStorage.removeItem('token');
+      localStorage.removeItem('restaurant');
+      
+      set({
+        isAuthenticated: false,
+        userRole: null,
+        phoneNumber: '',
+        currentStep: 'login',
+        otp: '',
+        isLoading: false,
+        restaurantData: null,
+        token: null,
+      });
+    },
+
+    setOtp: (otp: string) => {
+      set({ otp });
+    },
+
+    hydrate: async () => {
+      const token = typeof window !== 'undefined'
+        ? (localStorage.getItem(TOKEN_KEY) || localStorage.getItem('token'))
+        : null;
+      
+      if (typeof window !== 'undefined') {
+        const cachedRestaurant = getInitialRestaurant();
+        if (cachedRestaurant) {
+          set({ restaurantData: cachedRestaurant, isAuthenticated: true });
+        }
+      }
+
+      if (!token) {
+        return;
+      }
+
+      set({ isLoading: true });
+
+      try {
+        // Verify token with backend
+        const { data, error } = await apiClient.validateToken(token);
+        
+        if (error || !data) {
+          // Token is invalid, clear it
+          localStorage.removeItem(TOKEN_KEY);
+          localStorage.removeItem('token');
+          set({ isLoading: false, isAuthenticated: false, restaurantData: null, token: null });
+          return;
+        }
+
+        // Token is valid, restore auth state
+        if (data.restaurant) {
+          localStorage.setItem('restaurant', JSON.stringify(data.restaurant));
+        }
+        set({
+          isAuthenticated: true,
+          userRole: data.role,
+          phoneNumber: data.phone,
+          restaurantData: data.restaurant,
+          token: token,
+          currentStep: 'authenticated',
+          isLoading: false,
+        });
+      } catch (err) {
+        console.error('Hydration error:', err);
+        set({ isLoading: false });
+      }
+    },
+  };
+});

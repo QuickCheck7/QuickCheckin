@@ -130,6 +130,7 @@ const verifyLoginOTP = async (req, res) => {
     res.json({
       message: 'Login successful',
       sessionToken,
+      token: sessionToken,
       restaurant: {
         id: restaurant._id,
         name: restaurant.name,

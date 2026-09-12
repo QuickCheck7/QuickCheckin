@@ -99,12 +99,13 @@ const verifyLoginOTP = async (req, res) => {
         role 
       },
       process.env.JWT_SECRET,
-      { expiresIn: process.env.JWT_EXPIRE }
+      { expiresIn: process.env.JWT_EXPIRE || '30d' }
     );
 
     res.json({
       message: 'Login successful',
       token,
+      sessionToken: token,
       restaurant: {
         id: restaurant._id,
         name: restaurant.name,
