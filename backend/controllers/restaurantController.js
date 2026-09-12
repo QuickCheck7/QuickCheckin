@@ -145,6 +145,7 @@ const getSettings = async (req, res) => {
         name: restaurant.name,
         phone: restaurant.phone,
         address: restaurant.address,
+        postalCode: restaurant.postalCode,
         city: restaurant.city,
         logo: restaurant.logo,
         subscriptionPlan: restaurant.subscriptionPlan,
@@ -167,14 +168,22 @@ const getSettings = async (req, res) => {
 const updateSettings = async (req, res) => {
   try {
     const { restaurantId } = req.params;
-    const { gracePeriodMinutes, reminderDelayMinutes, allowedPartySizes, smsTemplates } = req.body;
+    const { gracePeriodMinutes, reminderDelayMinutes, allowedPartySizes, smsTemplates, address, postalCode, city } = req.body;
 
     const restaurant = await Restaurant.findById(restaurantId);
     if (!restaurant) {
       return res.status(404).json({ message: 'Restaurant not found.' });
     }
 
-    // Only update allowed fields (not name, phone, address)
+    if (address !== undefined) {
+      restaurant.address = address;
+    }
+    if (postalCode !== undefined) {
+      restaurant.postalCode = postalCode;
+    }
+    if (city !== undefined) {
+      restaurant.city = city;
+    }
     if (gracePeriodMinutes !== undefined) {
       restaurant.gracePeriodMinutes = Math.min(60, Math.max(5, gracePeriodMinutes));
     }
@@ -196,7 +205,10 @@ const updateSettings = async (req, res) => {
         gracePeriodMinutes: restaurant.gracePeriodMinutes,
         reminderDelayMinutes: restaurant.reminderDelayMinutes,
         allowedPartySizes: restaurant.allowedPartySizes,
-        smsTemplates: restaurant.smsTemplates
+        smsTemplates: restaurant.smsTemplates,
+        address: restaurant.address,
+        postalCode: restaurant.postalCode,
+        city: restaurant.city
       }
     });
   } catch (error) {

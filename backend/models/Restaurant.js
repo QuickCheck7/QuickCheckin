@@ -13,13 +13,13 @@ const restaurantSchema = new mongoose.Schema({
   },
   address: {
     type: String,
-    required: true,
-    trim: true
+    trim: true,
+    default: ''
   },
   postalCode: {
     type: String,
-    required: true,
-    trim: true
+    trim: true,
+    default: ''
   },
   email: {
     type: String,
