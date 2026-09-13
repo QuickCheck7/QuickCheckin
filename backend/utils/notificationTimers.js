@@ -81,7 +81,7 @@ const startNotificationTimers = (bookingId, app) => {
           booking.customerPhone,
           booking.customerName,
           'outbound',
-          'followUp',
+          'reminder',
           message
         );
         
@@ -148,18 +148,18 @@ const startNotificationTimers = (bookingId, app) => {
         
         await sendSMS(formattedPhone, message);
         
-        // Log the cancellation message
+        // Log the cancellation message with messageType: 'tableReleased'
         await logMessage(
           restaurant._id,
           booking._id,
           booking.customerPhone,
           booking.customerName,
           'outbound',
-          'autoCancelled',
+          'tableReleased',
           message
         );
         
-        // Emit SSE events
+        // Emit SSE events (booking status, wait time, and message event for real-time conversation tab)
         const sseEmitter = app.get('sseEmitter');
         if (sseEmitter) {
           sseEmitter.emit('booking', {
@@ -170,6 +170,11 @@ const startNotificationTimers = (bookingId, app) => {
           sseEmitter.emit('waitTime', {
             restaurantId: restaurant._id,
             type: 'wait_time_update'
+          });
+          sseEmitter.emit('message', {
+            restaurantId: restaurant._id,
+            type: 'new_message',
+            customerPhone: booking.customerPhone
           });
         }
         

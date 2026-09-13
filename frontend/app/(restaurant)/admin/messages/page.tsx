@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -21,6 +21,7 @@ export default function MessagesPage() {
   const [loading, setLoading] = useState(true);
   const [selectedPhone, setSelectedPhone] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
   // Fetch messages from backend
   const fetchMessages = useCallback(async () => {
@@ -29,7 +30,7 @@ export default function MessagesPage() {
     try {
       const result = await apiClient.getMessages(restaurantId);
       if (result.data) {
-        setConversations(result.data.conversations);
+        setConversations(result.data.conversations || []);
       }
     } catch (error) {
       console.error('Error fetching messages:', error);
@@ -58,14 +59,30 @@ export default function MessagesPage() {
     return () => clearInterval(interval);
   }, [fetchMessages]);
 
+  // Automatically select first conversation if none selected
+  useEffect(() => {
+    if (conversations.length > 0) {
+      if (!selectedPhone || !conversations.some(c => c.customerPhone === selectedPhone)) {
+        setSelectedPhone(conversations[0].customerPhone);
+      }
+    }
+  }, [conversations, selectedPhone]);
+
   const selectedConversation = conversations.find(c => c.customerPhone === selectedPhone);
+
+  // Auto-scroll to bottom of conversation thread
+  useEffect(() => {
+    if (selectedConversation) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [selectedConversation?.messages?.length, selectedPhone]);
 
   const filteredConversations = conversations.filter((conv) => {
     const q = searchTerm.toLowerCase();
     return (
       conv.customerName?.toLowerCase().includes(q) ||
       conv.customerPhone.includes(q) ||
-      conv.messages.some(m => m.content.toLowerCase().includes(q))
+      conv.messages.some(m => m.content?.toLowerCase().includes(q))
     );
   });
 
@@ -76,13 +93,42 @@ export default function MessagesPage() {
       case 'tableReady':
         return 'bg-primary/10 text-primary';
       case 'reminder':
+      case 'followUp':
         return 'bg-secondary/10 text-secondary-600';
       case 'response':
         return 'bg-success/10 text-success';
       case 'cancelled':
+      case 'cancelledByCustomer':
         return 'bg-error/10 text-error';
+      case 'tableReleased':
+      case 'autoCancel':
+      case 'autoCancelled':
+        return 'bg-amber-500/10 text-amber-600';
       default:
         return 'bg-ink/10 text-ink';
+    }
+  };
+
+  const getMessageTypeLabel = (type: string, direction?: string) => {
+    switch (type) {
+      case 'confirmation':
+        return 'Confirmation';
+      case 'tableReady':
+        return 'Table Ready';
+      case 'reminder':
+      case 'followUp':
+        return 'Reminder';
+      case 'response':
+        return direction === 'inbound' ? 'Customer Reply' : 'Response';
+      case 'cancelled':
+      case 'cancelledByCustomer':
+        return 'Cancelled';
+      case 'tableReleased':
+      case 'autoCancel':
+      case 'autoCancelled':
+        return 'Table Released';
+      default:
+        return type || 'Message';
     }
   };
 
@@ -178,19 +224,23 @@ export default function MessagesPage() {
                       >
                         <div className="flex items-center justify-between mb-2">
                           <h3 className="font-medium">{conv.customerName || t('unknown')}</h3>
-                          <Badge className={`${getMessageTypeColor(lastMessage.messageType)} border-0`}>
-                            {lastMessage.messageType}
-                          </Badge>
+                          {lastMessage && (
+                            <Badge className={`${getMessageTypeColor(lastMessage.messageType)} border-0 text-[11px] px-2 py-0.5`}>
+                              {getMessageTypeLabel(lastMessage.messageType, lastMessage.direction)}
+                            </Badge>
+                          )}
                         </div>
-                        <p className="text-sm text-muted truncate mb-1">{lastMessage.content}</p>
+                        <p className="text-sm text-muted truncate mb-1">{lastMessage?.content || ''}</p>
                         <div className="flex items-center justify-between text-xs text-muted">
                           <span className="flex items-center">
                             <Phone className="h-3 w-3 mr-1" />
                             {conv.customerPhone}
                           </span>
-                          <span>
-                            {formatDistanceToNow(new Date(lastMessage.createdAt), { addSuffix: true })}
-                          </span>
+                          {lastMessage?.createdAt && (
+                            <span>
+                              {formatDistanceToNow(new Date(lastMessage.createdAt), { addSuffix: true })}
+                            </span>
+                          )}
                         </div>
                       </div>
                     );
@@ -219,7 +269,7 @@ export default function MessagesPage() {
 
               <CardContent className="flex-1 flex flex-col">
                 {selectedConversation ? (
-                  <div className="flex-1 overflow-y-auto space-y-4">
+                  <div className="flex-1 overflow-y-auto space-y-4 pr-1">
                     {selectedConversation.messages.map((message) => (
                       <div
                         key={message._id}
@@ -232,8 +282,8 @@ export default function MessagesPage() {
                               : 'bg-off ring-1 ring-border text-ink'
                           }`}
                         >
-                          <p className="text-sm">{message.content}</p>
-                          <div className="flex items-center justify-between mt-2">
+                          <p className="text-sm whitespace-pre-line">{message.content}</p>
+                          <div className="flex items-center justify-between mt-2 gap-3">
                             <Badge
                               variant="outline"
                               className={`text-xs ${
@@ -242,7 +292,7 @@ export default function MessagesPage() {
                                   : 'border-border text-muted'
                               }`}
                             >
-                              {message.messageType}
+                              {getMessageTypeLabel(message.messageType, message.direction)}
                             </Badge>
                             <span
                               className={`text-xs ${
@@ -255,6 +305,7 @@ export default function MessagesPage() {
                         </div>
                       </div>
                     ))}
+                    <div ref={messagesEndRef} />
                   </div>
                 ) : (
                   <div className="flex-1 flex items-center justify-center">

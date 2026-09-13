@@ -360,45 +360,64 @@ const getDashboardData = async (req, res) => {
 const getMessages = async (req, res) => {
   try {
     const { restaurantId } = req.params;
-    const { customerPhone, limit = 50 } = req.query;
+    const { customerPhone, limit = 100 } = req.query;
 
     const query = { restaurantId };
 
     if (customerPhone) {
-      query.customerPhone = { $regex: customerPhone, $options: 'i' };
+      const clean = customerPhone.replace(/\D/g, '');
+      const pattern = clean.length >= 7 ? clean.slice(-7).split('').join('[\\s\\-\\(\\)\\.]*') : customerPhone;
+      query.customerPhone = { $regex: pattern, $options: 'i' };
     } else {
       // Retain messages for the last 30 days so conversations remain visible
       const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
       query.createdAt = { $gte: thirtyDaysAgo };
     }
 
-    const messages = await Message.find(query)
-      .sort({ createdAt: -1 })
-      .limit(parseInt(limit) || 200);
+    // Exclude invalid non-phone entries (such as 'QuickCheck' or empty)
+    query.customerPhone = query.customerPhone || { $nin: ['QuickCheck', '', null] };
 
-    // Group by customer phone for conversation view
+    const messages = await Message.find(query)
+      .sort({ createdAt: 1 }) // Chronological order
+      .limit(parseInt(limit) || 300)
+      .lean();
+
+    // Group by normalized 10-digit customer phone for unified conversation view
     const conversations = {};
-    messages.forEach(msg => {
-      const phone = msg.customerPhone;
-      if (!conversations[phone]) {
-        conversations[phone] = {
-          customerPhone: phone,
-          customerName: msg.customerName,
+
+    for (const msg of messages) {
+      const rawPhone = msg.customerPhone || '';
+      const digits = rawPhone.replace(/\D/g, '');
+
+      // Skip invalid non-phone numbers
+      if (digits.length < 7 || rawPhone.toLowerCase() === 'quickcheck') {
+        continue;
+      }
+
+      const canonicalPhone = formatPhoneNumber(rawPhone) || rawPhone;
+      const groupKey = digits.length >= 10 ? digits.slice(-10) : digits;
+
+      if (!conversations[groupKey]) {
+        conversations[groupKey] = {
+          customerPhone: canonicalPhone,
+          customerName: msg.customerName || '',
           messages: [],
           lastMessage: null
         };
+      } else {
+        if (!conversations[groupKey].customerName && msg.customerName) {
+          conversations[groupKey].customerName = msg.customerName;
+        }
       }
-      conversations[phone].messages.push(msg);
-    });
 
-    // Sort conversations by last message time
+      conversations[groupKey].messages.push(msg);
+      conversations[groupKey].lastMessage = msg;
+    }
+
+    // Sort conversations by last message time (newest conversation first)
     const sortedConversations = Object.values(conversations)
-      .map(conv => ({
-        ...conv,
-        lastMessage: conv.messages[0],
-        messages: conv.messages.reverse()
-      }))
-      .sort((a, b) => new Date(b.lastMessage.createdAt) - new Date(a.lastMessage.createdAt));
+      .filter(conv => conv.lastMessage)
+      .sort((a, b) => new Date(b.lastMessage.createdAt).getTime() - new Date(a.lastMessage.createdAt).getTime());
 
     res.json({ conversations: sortedConversations });
   } catch (error) {

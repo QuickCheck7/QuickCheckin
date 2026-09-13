@@ -1,6 +1,7 @@
 const Restaurant = require('../models/Restaurant');
 const Session = require('../models/Session');
 const Booking = require('../models/Booking');
+const Message = require('../models/Message');
 const { formatPhoneNumber } = require('./helpers');
 
 /**
@@ -9,6 +10,7 @@ const { formatPhoneNumber } = require('./helpers');
  * 2. Cleans business numbers (extracts digits, removes "BN-", spaces, suffixes)
  * 3. Sets safe defaults for address, postalCode, country, and subscription status
  * 4. Normalizes active sessions and customer booking phone numbers
+ * 5. Purges phantom webhook messages and normalizes message customer phones
  */
 const runDataMigration = async () => {
   try {
@@ -101,7 +103,39 @@ const runDataMigration = async () => {
       }
     }
 
-    console.log(`[Migration] Data normalization complete. Updated: ${restaurantsUpdated} restaurants, ${sessionsUpdated} sessions, ${bookingsUpdated} active bookings.`);
+    // 4. Purge Phantom Messages and Normalize Customer Phone in Messages
+    const purgedResult = await Message.deleteMany({
+      $or: [
+        { customerPhone: 'QuickCheck' },
+        { customerPhone: { $regex: /^quickcheck$/i } },
+        { customerPhone: null },
+        { customerPhone: '' }
+      ]
+    });
+    if (purgedResult.deletedCount > 0) {
+      console.log(`[Migration] Purged ${purgedResult.deletedCount} phantom QuickCheck messages from database.`);
+    }
+
+    const messages = await Message.find({});
+    let messagesUpdated = 0;
+    for (const m of messages) {
+      if (m.customerPhone) {
+        const digits = m.customerPhone.replace(/\D/g, '');
+        if (digits.length < 7) {
+          // Delete non-phone junk
+          await Message.deleteOne({ _id: m._id });
+          continue;
+        }
+        const normalized = formatPhoneNumber(m.customerPhone);
+        if (normalized && m.customerPhone !== normalized) {
+          m.customerPhone = normalized;
+          await m.save();
+          messagesUpdated++;
+        }
+      }
+    }
+
+    console.log(`[Migration] Data normalization complete. Updated: ${restaurantsUpdated} restaurants, ${sessionsUpdated} sessions, ${bookingsUpdated} active bookings, ${purgedResult.deletedCount} phantom messages purged, ${messagesUpdated} messages normalized.`);
   } catch (err) {
     console.error('[Migration] Error during data normalization:', err.message);
   }

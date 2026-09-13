@@ -99,53 +99,68 @@ const createBooking = async (req, res) => {
     
     await booking.save();
     
-    // Only send SMS if skipSms is not true
-    if (!skipSms) {
-      // Format and send confirmation SMS in customer's language
-      const formattedPhone = formatPhoneNumber(customerPhone);
-      const message = getSmsTemplate('confirmation', language || 'en', {
-        name: customerName,
-        partySize: partySize.toString(),
-        restaurant: restaurant.name,
-        waitTime: waitTime.toString()
-      });
-      
-      const smsResult = await sendSMS(formattedPhone, message);
-      
-      // Log the SMS
-      await logMessage(
-        restaurantId,
-        booking._id,
-        customerPhone,
-        customerName,
-        'outbound',
-        'confirmation',
-        message,
-        smsResult?.messageId
-      );
-    }
-    
-    // Emit SSE event for new booking
+    // Emit SSE event for new booking immediately (0ms delay on restaurant dashboard)
     const sseEmitter = req.app.get('sseEmitter');
     if (sseEmitter) {
       sseEmitter.emit('booking', { restaurantId, type: 'new_booking', booking });
     }
     
-    // Broadcast updated wait times
+    // Broadcast updated wait times immediately
     broadcastWaitTimeUpdate(req, restaurantId);
     
+    // Return HTTP response immediately to customer / kiosk
     res.status(201).json({
       message: 'Booking created successfully',
       booking: {
         id: booking._id,
-        customerName,
-        customerPhone,
+        customerName: booking.customerName,
+        customerPhone: booking.customerPhone,
         partySize,
         waitTime,
         estimatedSeatingTime: booking.estimatedSeatingTime,
         isCustomParty: booking.isCustomParty || false
       }
     });
+
+    // Send confirmation SMS asynchronously in background without delaying client or dashboard
+    if (!skipSms) {
+      (async () => {
+        try {
+          const formattedPhone = formatPhoneNumber(booking.customerPhone);
+          const message = getSmsTemplate('confirmation', language || 'en', {
+            name: booking.customerName,
+            partySize: partySize.toString(),
+            restaurant: restaurant.name,
+            waitTime: waitTime.toString()
+          });
+          
+          const smsResult = await sendSMS(formattedPhone, message);
+          
+          // Log the SMS with normalized customer phone
+          await logMessage(
+            restaurantId,
+            booking._id,
+            booking.customerPhone,
+            booking.customerName,
+            'outbound',
+            'confirmation',
+            message,
+            smsResult?.messageId
+          );
+
+          // Emit message event for real-time conversation tab update
+          if (sseEmitter) {
+            sseEmitter.emit('message', {
+              restaurantId,
+              type: 'new_message',
+              customerPhone: booking.customerPhone
+            });
+          }
+        } catch (smsErr) {
+          console.error(`[BookingController:createBooking] Background SMS error for booking ${booking._id}:`, smsErr);
+        }
+      })();
+    }
   } catch (error) {
     console.error(`[BookingController:createBooking] Error for restaurant ${req.params?.restaurantId}:`, error);
     res.status(500).json({ message: 'Failed to create booking.', error: error.message || 'Database error occurred while creating booking.' });
@@ -184,32 +199,8 @@ const notifyCustomer = async (req, res) => {
     booking.status = 'notified';
     booking.notificationSentAt = new Date();
     await booking.save();
-    
-    // Send notification SMS using template
-    // Send notification SMS in customer's language
-    const formattedPhone = formatPhoneNumber(booking.customerPhone);
-    const message = getSmsTemplate('tableReady', booking.language || 'en', {
-      name: booking.customerName,
-      partySize: booking.partySize.toString(),
-      restaurant: restaurant.name,
-      gracePeriod: (restaurant.gracePeriodMinutes || 15).toString()
-    });
-    
-    const smsResult = await sendSMS(formattedPhone, message);
-    
-    // Log the SMS
-    await logMessage(
-      restaurant._id,
-      booking._id,
-      booking.customerPhone,
-      booking.customerName,
-      'outbound',
-      'tableReady',
-      message,
-      smsResult?.messageId
-    );
-    
-    // Emit SSE event
+
+    // Emit SSE event immediately so dashboard updates in real-time
     const sseEmitter = req.app.get('sseEmitter');
     if (sseEmitter) {
       sseEmitter.emit('booking', { restaurantId: restaurant._id, type: 'status_change', booking });
@@ -218,7 +209,44 @@ const notifyCustomer = async (req, res) => {
     // Start notification timers (7-min follow-up, 20-min auto-cancel)
     startNotificationTimers(booking._id.toString(), req.app);
     
+    // Return response immediately so staff UI does not hang
     res.json({ message: 'Customer notified successfully' });
+
+    // Send notification SMS in background
+    (async () => {
+      try {
+        const formattedPhone = formatPhoneNumber(booking.customerPhone);
+        const message = getSmsTemplate('tableReady', booking.language || 'en', {
+          name: booking.customerName,
+          partySize: booking.partySize.toString(),
+          restaurant: restaurant.name,
+          gracePeriod: (restaurant.gracePeriodMinutes || 15).toString()
+        });
+        
+        const smsResult = await sendSMS(formattedPhone, message);
+        
+        await logMessage(
+          restaurant._id,
+          booking._id,
+          booking.customerPhone,
+          booking.customerName,
+          'outbound',
+          'tableReady',
+          message,
+          smsResult?.messageId
+        );
+
+        if (sseEmitter) {
+          sseEmitter.emit('message', {
+            restaurantId: restaurant._id,
+            type: 'new_message',
+            customerPhone: booking.customerPhone
+          });
+        }
+      } catch (smsErr) {
+        console.error(`[BookingController:notifyCustomer] Background SMS error for booking ${booking._id}:`, smsErr);
+      }
+    })();
   } catch (error) {
     console.error(`[BookingController:notifyCustomer] Error for booking ${req.params?.bookingId}:`, error);
     res.status(500).json({ message: 'Failed to notify customer.', error: error.message || 'Error occurred while notifying customer.' });
@@ -350,33 +378,14 @@ const cancelBooking = async (req, res) => {
       }
     }
     
+    // Cancel any pending notification timers
+    cancelTimers(booking._id.toString());
+
     // Update booking status
     booking.status = 'cancelled';
     await booking.save();
     
-    // Send cancellation SMS
-    // Send cancellation SMS in customer's language
-    const formattedPhone = formatPhoneNumber(booking.customerPhone);
-    const message = getSmsTemplate('cancelled', booking.language || 'en', {
-      name: booking.customerName,
-      restaurant: restaurant.name
-    });
-    
-    const smsResult = await sendSMS(formattedPhone, message);
-    
-    // Log the SMS
-    await logMessage(
-      restaurant._id,
-      booking._id,
-      booking.customerPhone,
-      booking.customerName,
-      'outbound',
-      'cancelled',
-      message,
-      smsResult?.messageId
-    );
-    
-    // Emit SSE event
+    // Emit SSE event immediately
     const sseEmitter = req.app.get('sseEmitter');
     if (sseEmitter) {
       sseEmitter.emit('booking', { 
@@ -389,7 +398,42 @@ const cancelBooking = async (req, res) => {
     // Broadcast updated wait times
     broadcastWaitTimeUpdate(req, restaurant._id);
     
+    // Return response immediately
     res.json({ message: 'Booking cancelled successfully' });
+
+    // Send cancellation SMS in background
+    (async () => {
+      try {
+        const formattedPhone = formatPhoneNumber(booking.customerPhone);
+        const message = getSmsTemplate('cancelled', booking.language || 'en', {
+          name: booking.customerName,
+          restaurant: restaurant.name
+        });
+        
+        const smsResult = await sendSMS(formattedPhone, message);
+        
+        await logMessage(
+          restaurant._id,
+          booking._id,
+          booking.customerPhone,
+          booking.customerName,
+          'outbound',
+          'cancelled',
+          message,
+          smsResult?.messageId
+        );
+
+        if (sseEmitter) {
+          sseEmitter.emit('message', { 
+            restaurantId: restaurant._id, 
+            type: 'new_message', 
+            customerPhone: booking.customerPhone 
+          });
+        }
+      } catch (smsErr) {
+        console.error(`[BookingController:cancelBooking] Background SMS error for booking ${booking._id}:`, smsErr);
+      }
+    })();
   } catch (error) {
     console.error(`[BookingController:cancelBooking] Error for booking ${req.params?.bookingId}:`, error);
     res.status(500).json({ message: 'Failed to cancel booking.', error: error.message || 'Database error occurred while cancelling booking.' });
@@ -465,21 +509,60 @@ const handleCustomerResponse = async (req, res) => {
     }
 
     const { payload } = data;
-    const from = payload.from.phone_number;
+    const eventType = data.event_type;
+
+    // 1. If this is a delivery status event (outbound delivery receipt), handle status update and EXIT
+    if (eventType && eventType !== 'message.received') {
+      const messageId = payload.id;
+      if (messageId) {
+        const statusMap = {
+          'message.delivered': 'delivered',
+          'message.sent': 'sent',
+          'message.failed': 'failed',
+          'message.delivery_failed': 'failed',
+          'message.undelivered': 'failed'
+        };
+        const newStatus = statusMap[eventType];
+        if (newStatus) {
+          await Message.updateMany({ telnyxMessageId: messageId }, { status: newStatus });
+          console.log(`[Telnyx Webhook] Updated status of message ${messageId} to ${newStatus}`);
+        }
+      }
+      return res.status(200).json({ message: `Handled status event: ${eventType}` });
+    }
+
+    // Also ignore if direction is explicitly outbound
+    if (payload.direction === 'outbound') {
+      return res.status(200).json({ message: 'Ignored outbound event.' });
+    }
+
+    const rawFrom = payload.from?.phone_number || payload.from;
     const body = payload.text;
     
-    if (!from || !body) {
+    if (!rawFrom || !body) {
       return res.status(400).json({ message: 'Phone number and message body are required.' });
     }
-    
-    // Flexible lookup matching digits across any spacing or dash variations
-    const fromDigits = from.replace(/\D/g, '');
-    const digitPattern = fromDigits.length >= 10
-      ? fromDigits.slice(-10).split('').join('[\\s\\-\\(\\)\\.]*')
-      : fromDigits.split('').join('[\\s\\-\\(\\)\\.]*');
+
+    // 2. Reject non-phone senders (e.g. alphanumeric "QuickCheck", shortcodes)
+    const fromDigits = String(rawFrom || '').replace(/\D/g, '');
+    if (fromDigits.length < 7) {
+      console.warn(`[Telnyx Webhook] Ignoring incoming webhook from non-phone sender: "${rawFrom}"`);
+      return res.status(200).json({ message: 'Ignored non-phone sender.' });
+    }
+
+    // 3. Ignore loopback messages originating from our own Telnyx number
+    const myNumberDigits = (process.env.TELNYX_PHONE_NUMBER || '').replace(/\D/g, '');
+    if (myNumberDigits && fromDigits === myNumberDigits) {
+      console.warn('[Telnyx Webhook] Ignoring loopback message from own phone number.');
+      return res.status(200).json({ message: 'Ignored loopback message.' });
+    }
+
+    // 4. Flexible lookup matching digits across any spacing or dash variations
+    const searchDigits = fromDigits.length >= 10 ? fromDigits.slice(-10) : fromDigits;
+    const digitPattern = searchDigits.split('').join('[\\s\\-\\(\\)\\.]*');
     const phoneRegex = new RegExp(`[\\s\\-\\(\\)\\.]*${digitPattern}[\\s\\-\\(\\)\\.]*$`, 'i');
 
-    // Find the most recent notified booking from this phone, or fallback to any recent booking
+    // Prioritize most recent notified booking, then active (waiting/confirmed), then any booking
     let booking = await Booking.findOne({
       customerPhone: phoneRegex,
       status: 'notified'
@@ -487,29 +570,41 @@ const handleCustomerResponse = async (req, res) => {
     
     if (!booking) {
       booking = await Booking.findOne({
+        customerPhone: phoneRegex,
+        status: { $in: ['waiting', 'confirmed'] }
+      }).sort({ createdAt: -1 }).populate('restaurantId');
+    }
+
+    if (!booking) {
+      booking = await Booking.findOne({
         customerPhone: phoneRegex
       }).sort({ createdAt: -1 }).populate('restaurantId');
     }
 
     if (!booking) {
-      return res.status(404).json({ message: 'No active booking found.' });
+      console.warn(`[Telnyx Webhook] No active booking found for incoming phone: ${rawFrom}`);
+      return res.status(200).json({ message: 'No active booking found.' });
     }
 
     const restaurant = booking.restaurantId;
+    // Canonical customer phone (always normalized, never sender name)
+    const customerPhone = booking.customerPhone || formatPhoneNumber(rawFrom);
     
     // Log the incoming message
     await logMessage(
       restaurant._id,
       booking._id,
-      from,
+      customerPhone,
       booking.customerName,
       'inbound',
       'response',
-      body
+      body,
+      payload.id
     );
     
     const response = body.trim().toUpperCase();
     const lang = booking.language || 'en';
+    const sseEmitter = req.app.get('sseEmitter');
     
     // Accept Y/YES (English) or O/OUI (French) as confirmation
     if (response === 'Y' || response === 'YES' || response === 'O' || response === 'OUI') {
@@ -520,9 +615,20 @@ const handleCustomerResponse = async (req, res) => {
       booking.confirmationReceivedAt = new Date();
       await booking.save();
       
-      // CONFIRMATION SMS REMOVED AS REQUESTED
-      // No outbound SMS sent here, but logic remains (timers cancelled, status updated)
-      console.log(`[Booking] Confirmed booking ${booking._id} via SMS reply ${response}. No response sent.`);
+      console.log(`[Booking] Confirmed booking ${booking._id} via SMS reply ${response}.`);
+
+      if (sseEmitter) {
+        sseEmitter.emit('booking', { 
+          restaurantId: restaurant._id, 
+          type: 'status_change', 
+          booking 
+        });
+        sseEmitter.emit('message', { 
+          restaurantId: restaurant._id, 
+          type: 'new_message', 
+          customerPhone 
+        });
+      }
       
     } else if (response === 'N' || response === 'NO' || response === 'NON') {
       // Cancel the follow-up and auto-cancel timers
@@ -546,33 +652,40 @@ const handleCustomerResponse = async (req, res) => {
         name: booking.customerName,
         restaurant: restaurant.name
       });
-      await sendSMS(from, message);
-      await logMessage(restaurant._id, booking._id, from, booking.customerName, 'outbound', 'cancelled', message);
+      
+      const smsResult = await sendSMS(customerPhone, message);
+      await logMessage(restaurant._id, booking._id, customerPhone, booking.customerName, 'outbound', 'cancelled', message, smsResult?.messageId);
+      
+      if (sseEmitter) {
+        sseEmitter.emit('booking', { 
+          restaurantId: restaurant._id, 
+          type: 'status_change', 
+          booking 
+        });
+        sseEmitter.emit('message', { 
+          restaurantId: restaurant._id, 
+          type: 'new_message', 
+          customerPhone 
+        });
+      }
       
     } else {
       const message = getSmsTemplate('invalidResponse', lang);
-      await sendSMS(from, message);
-      await logMessage(restaurant._id, booking._id, from, booking.customerName, 'outbound', 'response', message);
+      const smsResult = await sendSMS(customerPhone, message);
+      await logMessage(restaurant._id, booking._id, customerPhone, booking.customerName, 'outbound', 'response', message, smsResult?.messageId);
       
-      return res.json({ message: 'Invalid response received' });
+      if (sseEmitter) {
+        sseEmitter.emit('message', { 
+          restaurantId: restaurant._id, 
+          type: 'new_message', 
+          customerPhone 
+        });
+      }
+      
+      return res.json({ message: 'Invalid response received and handled' });
     }
     
-    // Emit SSE event
-    const sseEmitter = req.app.get('sseEmitter');
-    if (sseEmitter) {
-      sseEmitter.emit('booking', { 
-        restaurantId: restaurant._id, 
-        type: 'status_change', 
-        booking 
-      });
-      sseEmitter.emit('message', { 
-        restaurantId: restaurant._id, 
-        type: 'new_message',
-        customerPhone: from 
-      });
-    }
-    
-    // Broadcast updated wait times (especially important if booking was cancelled)
+    // Broadcast updated wait times
     broadcastWaitTimeUpdate(req, restaurant._id);
     
     res.json({ message: 'Customer response processed successfully' });

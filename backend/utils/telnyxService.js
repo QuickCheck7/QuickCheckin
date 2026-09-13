@@ -1,58 +1,71 @@
+const https = require('https');
 const axios = require('axios');
 const telnyx = require('telnyx')(process.env.TELNYX_API_KEY);
 
+// Persistent HTTPS agent to reuse TLS sockets and eliminate TLS handshake delay
+const httpsAgent = new https.Agent({
+  keepAlive: true,
+  maxSockets: 50,
+  keepAliveMsecs: 30000
+});
+
 // Format phone number for Telnyx (E.164)
 const formatPhoneNumber = (phone) => {
+  if (!phone || typeof phone !== 'string') return '';
   const cleaned = phone.replace(/\D/g, '');
+  if (!cleaned) return '';
 
   if (cleaned.length === 10) {
-    return `+1${cleaned}`; // US numbers
+    return `+1${cleaned}`; // US/Canada numbers
   } else if (cleaned.length === 11 && cleaned.startsWith('1')) {
     return `+${cleaned}`;
+  } else if (phone.startsWith('+')) {
+    return phone;
   } else {
     return `+${cleaned}`;
   }
 };
+
 const TELNYX_FROM = (process.env.TELNYX_PHONE_NUMBER || '').replace(/\D/g, ''); // digits only for sanity
 const MESSAGING_PROFILE_ID = process.env.TELNYX_MESSAGING_PROFILE_ID; // add this to .env
 
-const sendSMS = async (to, message, maxRetries = 3) => {
+const sendSMS = async (to, message, maxRetries = 2) => {
+  // 1. Validate destination number before making any network call
+  if (!to || typeof to !== 'string') {
+    console.warn('[Telnyx] No destination phone number provided. Skipping SMS.');
+    return { success: false, error: 'Missing destination phone number' };
+  }
+
+  const cleanedDigits = to.replace(/\D/g, '');
+  if (cleanedDigits.length < 7) {
+    console.warn(`[Telnyx] Invalid destination phone number "${to}" (less than 7 digits). Skipping SMS.`);
+    return { success: false, error: 'Invalid destination phone number' };
+  }
+
+  const formattedTo = formatPhoneNumber(to);
+  if (!TELNYX_FROM) {
+    console.error('[Telnyx] TELNYX_PHONE_NUMBER not configured.');
+    return { success: false, error: 'TELNYX_PHONE_NUMBER not configured' };
+  }
+
+  const fromNumberE164 = `+${TELNYX_FROM}`;
+  const payload = {
+    from: fromNumberE164,
+    to: formattedTo,
+    text: message
+  };
+
+  if (MESSAGING_PROFILE_ID) payload.messaging_profile_id = MESSAGING_PROFILE_ID;
+
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
-      const formattedTo = formatPhoneNumber(to);
-
-      if (!TELNYX_FROM) throw new Error('TELNYX_PHONE_NUMBER not configured');
-      const fromNumberE164 = `+${TELNYX_FROM}`;
-
-      const payload = {
-        from: fromNumberE164,
-        to: formattedTo,
-        text: message
-      };
-
-      if (MESSAGING_PROFILE_ID) payload.messaging_profile_id = MESSAGING_PROFILE_ID;
-
-      console.log(`Sending SMS payload: ${JSON.stringify(payload)}`);
-
-      // 1) Prefer the SDK .create if available
-      if (telnyx && telnyx.messages && typeof telnyx.messages.create === 'function') {
-        const resp = await telnyx.messages.create(payload);
-        console.log('SMS sent via telnyx.messages.create:', resp?.data ?? resp);
-        return { success: true, messageId: resp?.data?.id ?? resp?.id ?? null };
-      }
-
-      // 2) Fallback to SDK .send if available
-      if (telnyx && telnyx.messages && typeof telnyx.messages.send === 'function') {
-        const resp = await telnyx.messages.send(payload);
-        console.log('SMS sent via telnyx.messages.send:', resp?.data ?? resp);
-        return { success: true, messageId: resp?.data?.id ?? resp?.id ?? null };
-      }
-
-      // 3) Final fallback: direct REST call with axios
+      // Direct REST call with persistent HTTP keep-alive agent and 10s timeout
       const axiosResp = await axios.post(
         'https://api.telnyx.com/v2/messages',
         payload,
         {
+          httpsAgent,
+          timeout: 10000,
           headers: {
             Authorization: `Bearer ${process.env.TELNYX_API_KEY}`,
             'Content-Type': 'application/json'
@@ -60,25 +73,36 @@ const sendSMS = async (to, message, maxRetries = 3) => {
         }
       );
 
-      console.log('SMS sent via REST API:', axiosResp.data);
-      return { success: true, messageId: axiosResp.data?.data?.id ?? null };
+      const messageId = axiosResp.data?.data?.id ?? null;
+      console.log(`[Telnyx] ✅ SMS sent successfully to ${formattedTo} (ID: ${messageId})`);
+      return { success: true, messageId };
 
     } catch (error) {
-      // Log full Telnyx error body if present
-      if (error && error.response && error.response.data) {
-        console.error(`Attempt ${attempt} failed - telnyx response:`, JSON.stringify(error.response.data));
-      } else {
-        console.error(`Attempt ${attempt} failed:`, error && error.message ? error.message : error);
+      const statusCode = error.response?.status;
+      const errorData = error.response?.data;
+
+      console.error(`[Telnyx] ⚠️ Attempt ${attempt} failed for ${formattedTo} (Status ${statusCode || 'NET'}):`, 
+        errorData ? JSON.stringify(errorData) : error.message
+      );
+
+      // Never retry on 4xx client errors (e.g. invalid phone number, bad auth, unroutable destination)
+      if (statusCode && statusCode >= 400 && statusCode < 500) {
+        console.warn(`[Telnyx] Client error (${statusCode}). Aborting retries immediately.`);
+        return {
+          success: false,
+          error: errorData?.errors?.[0]?.detail || error.message || `Client error ${statusCode}`
+        };
       }
 
       if (attempt === maxRetries) {
         return {
           success: false,
-          error: `Failed after ${maxRetries} attempts: ${error && error.message ? error.message : JSON.stringify(error)}`
+          error: error.message || 'SMS delivery failed after retries'
         };
       }
 
-      await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, attempt)));
+      // Short 500ms backoff for transient server/network hiccups
+      await new Promise(resolve => setTimeout(resolve, 500 * attempt));
     }
   }
 };

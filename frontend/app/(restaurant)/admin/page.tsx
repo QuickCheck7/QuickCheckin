@@ -69,7 +69,7 @@ export default function AdminDashboard() {
 
   // SSE handlers for real-time updates
   const handleNewBooking = useCallback((data: any) => {
-    const booking = data.booking;
+    const booking = data?.booking;
     
     // Check if it's a custom party booking
     if (booking?.isCustomParty) {
@@ -79,15 +79,39 @@ export default function AdminDashboard() {
         description: `${booking.customerName} - Party of ${booking.partySize} needs assistance`,
         duration: 10000
       });
-    } else {
+    } else if (booking) {
       toast.success(t('newBookingReceived'), {
         description: `${booking?.customerName} - ${t('partyOf')} ${booking?.partySize}`
       });
     }
-    fetchData(); // Refresh data
-  }, [fetchData]);
 
-  const handleStatusChange = useCallback(() => {
+    // Optimistically update bookings list immediately (0ms latency on screen)
+    if (booking) {
+      setBookings((prev) => {
+        const id = booking._id || booking.id;
+        const exists = prev.some((b) => (b._id || b.id) === id);
+        if (exists) return prev;
+        return [booking, ...prev];
+      });
+      setStats((prev) => prev ? {
+        ...prev,
+        totalWaiting: prev.totalWaiting + 1,
+        totalBookings: prev.totalBookings + 1
+      } : prev);
+    }
+
+    fetchData(); // Refresh authoritative data from backend
+  }, [fetchData, t]);
+
+  const handleStatusChange = useCallback((data: any) => {
+    const updatedBooking = data?.booking;
+    if (updatedBooking) {
+      setBookings((prev) => prev.map((b) => {
+        const id = b._id || b.id;
+        const targetId = updatedBooking._id || updatedBooking.id;
+        return id === targetId ? { ...b, ...updatedBooking } : b;
+      }));
+    }
     fetchData(); // Refresh data on any status change
   }, [fetchData]);
 
