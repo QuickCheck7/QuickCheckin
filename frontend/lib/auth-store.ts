@@ -142,15 +142,18 @@ export const useAuthStore = create<AuthState>((set, get) => {
     },
 
     hydrate: async () => {
-      const token = typeof window !== 'undefined'
-        ? (localStorage.getItem(TOKEN_KEY) || localStorage.getItem('token'))
-        : null;
+      if (typeof window === 'undefined') return;
+
+      // Do not run restaurant store hydration on super-admin routes
+      if (window.location.pathname.startsWith('/super-admin')) {
+        return;
+      }
+
+      const token = localStorage.getItem(TOKEN_KEY) || localStorage.getItem('token');
       
-      if (typeof window !== 'undefined') {
-        const cachedRestaurant = getInitialRestaurant();
-        if (cachedRestaurant) {
-          set({ restaurantData: cachedRestaurant, isAuthenticated: true });
-        }
+      const cachedRestaurant = getInitialRestaurant();
+      if (cachedRestaurant) {
+        set({ restaurantData: cachedRestaurant, isAuthenticated: true });
       }
 
       if (!token) {
@@ -164,10 +167,21 @@ export const useAuthStore = create<AuthState>((set, get) => {
         const { data, error } = await apiClient.validateToken(token);
         
         if (error || !data) {
-          // Token is invalid, clear it
-          localStorage.removeItem(TOKEN_KEY);
-          localStorage.removeItem('token');
-          set({ isLoading: false, isAuthenticated: false, restaurantData: null, token: null });
+          // ONLY clear tokens if backend explicitly responded with 401 Unauthorized
+          // Never wipe user tokens on transient 500 errors or network disconnects
+          if (error?.status === 401) {
+            localStorage.removeItem(TOKEN_KEY);
+            localStorage.removeItem('token');
+            set({ isLoading: false, isAuthenticated: false, restaurantData: null, token: null });
+          } else {
+            set({ isLoading: false });
+          }
+          return;
+        }
+
+        // If this is a superadmin token, leave it untouched
+        if ((data.role as string) === 'superadmin') {
+          set({ isLoading: false });
           return;
         }
 
@@ -177,7 +191,7 @@ export const useAuthStore = create<AuthState>((set, get) => {
         }
         set({
           isAuthenticated: true,
-          userRole: data.role,
+          userRole: data.role as UserRole,
           phoneNumber: data.phone,
           restaurantData: data.restaurant,
           token: token,

@@ -16,6 +16,7 @@ import {
   TrendingUp,
 } from 'lucide-react';
 import Image from 'next/image';
+import { isSuperAdminAuthenticated, clearSuperAdminAuth } from '@/lib/super-admin-auth';
 
 const navigation = [
   { name: 'Restaurants', href: '/super-admin/restaurants', icon: Building },
@@ -33,10 +34,16 @@ export default function SuperAdminLayout({
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
-    // Check if user is authenticated (in real app, check JWT token or session)
-    const isAuth = sessionStorage.getItem('superAdminAuth') === 'true';
+    if (pathname === '/super-admin/auth') {
+      setIsAuthenticated(true);
+      return;
+    }
 
-    if (!isAuth && pathname !== '/super-admin/auth') {
+    const isAuth = isSuperAdminAuthenticated();
+
+    if (!isAuth) {
+      clearSuperAdminAuth();
+      setIsAuthenticated(false);
       router.push('/super-admin/auth');
     } else {
       setIsAuthenticated(true);
@@ -44,8 +51,8 @@ export default function SuperAdminLayout({
   }, [pathname, router]);
 
   const handleLogout = () => {
-    sessionStorage.removeItem('superAdminAuth');
-    router.push('/');
+    clearSuperAdminAuth();
+    router.push('/super-admin/auth');
   };
 
   // Don't render layout for auth page

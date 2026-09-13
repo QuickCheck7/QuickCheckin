@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
+import { getSuperAdminToken, redirectToSuperAdminLogin } from '@/lib/super-admin-auth';
 
 interface RevenueStats {
   mtd: number;
@@ -45,7 +46,11 @@ export default function AnalyticsPage() {
 
   const fetchAnalytics = async () => {
     try {
-      const token = sessionStorage.getItem('qc_sa_token'); // Fixed: use correct key from login
+      const token = getSuperAdminToken();
+      if (!token) {
+        redirectToSuperAdminLogin();
+        return;
+      }
       const headers = { Authorization: `Bearer ${token}` };
 
       const [revenueRes, subscriptionsRes, paymentsRes] = await Promise.all([
@@ -53,6 +58,11 @@ export default function AnalyticsPage() {
         fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/super-admin/analytics/subscriptions`, { headers }),
         fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/super-admin/analytics/payments?limit=20`, { headers })
       ]);
+
+      if (revenueRes.status === 401 || subscriptionsRes.status === 401 || paymentsRes.status === 401) {
+        redirectToSuperAdminLogin();
+        return;
+      }
 
       if (revenueRes.ok) setRevenue(await revenueRes.json());
       if (subscriptionsRes.ok) setSubscriptions(await subscriptionsRes.json());
@@ -74,11 +84,20 @@ export default function AnalyticsPage() {
 
   const handleExport = async (type: 'payments' | 'subscriptions') => {
     try {
-      const token = sessionStorage.getItem('qc_sa_token');
+      const token = getSuperAdminToken();
+      if (!token) {
+        redirectToSuperAdminLogin();
+        return;
+      }
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/api/super-admin/analytics/export?type=${type}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
+
+      if (response.status === 401) {
+        redirectToSuperAdminLogin();
+        return;
+      }
 
       if (response.ok) {
         const blob = await response.blob();

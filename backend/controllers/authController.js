@@ -259,6 +259,150 @@ const verifyBusinessNumber = async (req, res) => {
 };
 
 /**
+ * Open-Source Postal Code / ZIP Code Cross-Validation (US & Canada)
+ * GET /api/auth/validate-postal-code?code=...&country=...
+ */
+const validatePostalCode = async (req, res) => {
+  try {
+    const { code, country } = req.query;
+
+    if (!code || !country) {
+      return res.status(400).json({ valid: false, message: 'Postal code and country are required.' });
+    }
+
+    const cleanCountry = country.trim().toUpperCase();
+    const rawCode = code.trim();
+
+    if (!['US', 'CA'].includes(cleanCountry)) {
+      return res.status(400).json({ valid: false, message: 'Country must be US or CA.' });
+    }
+
+    if (cleanCountry === 'CA') {
+      // Cross-check: check if user entered a 5-digit US ZIP code
+      if (/^\d{5}(-\d{4})?$/.test(rawCode)) {
+        return res.status(400).json({
+          valid: false,
+          message: 'This appears to be a US ZIP code. Please enter a Canadian postal code (e.g., M5V 2H1) or select United States.'
+        });
+      }
+
+      // Canadian format: A1A 1A1 (letters D, F, I, O, Q, U not allowed; W, Z not first letter)
+      const caPattern = /^[ABCEGHJ-NPRSTVXY]\d[ABCEGHJ-NPRSTV-Z][ ]?\d[ABCEGHJ-NPRSTV-Z]\d$/i;
+      if (!caPattern.test(rawCode)) {
+        return res.status(400).json({
+          valid: false,
+          message: 'Invalid Canadian postal code format. Expected format is A1A 1A1 (e.g. M5V 2H1).'
+        });
+      }
+
+      const stripped = rawCode.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+      const formattedCode = `${stripped.substring(0, 3)} ${stripped.substring(3, 6)}`;
+      const fsa = stripped.substring(0, 3);
+
+      // Verify with open-source zippopotam.us API
+      try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 3000);
+        const response = await fetch(`https://api.zippopotam.us/ca/${fsa}`, {
+          signal: controller.signal
+        });
+        clearTimeout(timeout);
+
+        if (response.status === 404) {
+          return res.status(400).json({
+            valid: false,
+            message: `Canadian postal code area "${fsa}" was not found in the postal directory. Please verify.`
+          });
+        }
+
+        if (response.ok) {
+          const data = await response.json();
+          const place = data.places?.[0];
+          return res.json({
+            valid: true,
+            postalCode: formattedCode,
+            city: place?.['place name'] || '',
+            state: place?.['state abbreviation'] || '',
+            country: 'CA'
+          });
+        }
+      } catch (fetchErr) {
+        console.warn('[validatePostalCode] Zippopotam CA lookup notice:', fetchErr.message);
+      }
+
+      return res.json({
+        valid: true,
+        postalCode: formattedCode,
+        verified: false,
+        country: 'CA'
+      });
+    }
+
+    if (cleanCountry === 'US') {
+      // Cross-check: check if user entered a Canadian alphanumeric postal code
+      if (/^[ABCEGHJ-NPRSTVXY]\d/i.test(rawCode)) {
+        return res.status(400).json({
+          valid: false,
+          message: 'This appears to be a Canadian postal code. Please enter a 5-digit US ZIP code (e.g., 90210) or select Canada.'
+        });
+      }
+
+      // US format: 5 digits, optional +4
+      const usPattern = /^\d{5}(-\d{4})?$/;
+      if (!usPattern.test(rawCode)) {
+        return res.status(400).json({
+          valid: false,
+          message: 'Invalid US ZIP code format. Expected 5 digits (e.g. 90210).'
+        });
+      }
+
+      const zip5 = rawCode.substring(0, 5);
+
+      // Verify with open-source zippopotam.us API
+      try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 3000);
+        const response = await fetch(`https://api.zippopotam.us/us/${zip5}`, {
+          signal: controller.signal
+        });
+        clearTimeout(timeout);
+
+        if (response.status === 404) {
+          return res.status(400).json({
+            valid: false,
+            message: `US ZIP code "${zip5}" was not found in the postal directory. Please verify.`
+          });
+        }
+
+        if (response.ok) {
+          const data = await response.json();
+          const place = data.places?.[0];
+          return res.json({
+            valid: true,
+            postalCode: rawCode,
+            city: place?.['place name'] || '',
+            state: place?.['state abbreviation'] || '',
+            country: 'US'
+          });
+        }
+      } catch (fetchErr) {
+        console.warn('[validatePostalCode] Zippopotam US lookup notice:', fetchErr.message);
+      }
+
+      return res.json({
+        valid: true,
+        postalCode: rawCode,
+        verified: false,
+        country: 'US'
+      });
+    }
+  } catch (error) {
+    console.error('Validate postal code error:', error);
+    res.status(500).json({ valid: false, message: 'Server error validating postal code.', error: error.message });
+  }
+};
+
+/**
  * Restaurant Self-Service Signup
  * POST /api/auth/signup
  */
@@ -576,6 +720,7 @@ module.exports = {
   validateSession,
   logout,
   verifyBusinessNumber,
+  validatePostalCode,
   validateContact,
   signup
 };

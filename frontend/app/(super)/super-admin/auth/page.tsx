@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Shield, ArrowRight, Home, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { setSuperAdminAuth, isSuperAdminAuthenticated } from '@/lib/super-admin-auth';
 
 type LoginErrors = { email?: string; password?: string; form?: string };
 type ResetErrors = { email?: string; otp?: string; newPassword?: string; form?: string };
@@ -46,6 +47,12 @@ export default function SuperAdminAuth() {
   const [resetSuccessMsg, setResetSuccessMsg] = useState<string | null>(null);
 
   useEffect(() => {
+    if (isSuperAdminAuthenticated()) {
+      router.replace('/super-admin/restaurants');
+    }
+  }, [router]);
+
+  useEffect(() => {
     if (otpCooldown <= 0) return;
     const t = setInterval(() => setOtpCooldown((s) => s - 1), 1000);
     return () => clearInterval(t);
@@ -74,6 +81,7 @@ export default function SuperAdminAuth() {
       // include credentials if your API sets secure cookies later
       credentials: 'include',
     });
+
     let data: any = null;
     try {
       data = await res.json();
@@ -99,16 +107,9 @@ export default function SuperAdminAuth() {
         body: JSON.stringify({ email, password }),
       });
 
-      // Store auth in sessionStorage and localStorage for compatibility
-      try {
-        if (data?.token) {
-          sessionStorage.setItem('qc_sa_token', data.token);
-          localStorage.setItem('token', data.token); // For restaurants page compatibility
-        }
-        if (data?.superAdmin?.email) sessionStorage.setItem('qc_sa_email', data.superAdmin.email);
-        if (data?.superAdmin?.id) sessionStorage.setItem('qc_sa_id', data.superAdmin.id as string);
-        sessionStorage.setItem('superAdminAuth', 'true');
-      } catch {}
+      if (data?.token) {
+        setSuperAdminAuth(data.token, data.superAdmin);
+      }
 
       router.push('/super-admin/restaurants');
     } catch (err: any) {

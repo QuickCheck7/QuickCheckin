@@ -6,6 +6,7 @@ const {
   validateSession,
   logout,
   verifyBusinessNumber,
+  validatePostalCode,
   validateContact,
   reportDuplicateTrialAttempt,
   signup
@@ -34,6 +35,7 @@ router.post('/logout', logout);
 
 // Verify business number availability (public)
 router.get('/verify-business-number', verifyBusinessNumber);
+router.get('/validate-postal-code', validatePostalCode);
 router.post('/validate-contact', validateContact);
 router.post('/duplicate-trial-attempt', reportDuplicateTrialAttempt);
 

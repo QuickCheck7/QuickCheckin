@@ -157,9 +157,9 @@ class ApiClient {
 
   async validateToken(token: string) {
     return this.request<{
-      restaurantId: string;
+      restaurantId: string | null;
       phone: string;
-      role: 'admin' | 'guest';
+      role: 'admin' | 'guest' | 'superadmin';
       restaurant: {
         id: string;
         name: string;
@@ -167,7 +167,7 @@ class ApiClient {
         email: string;
         phone: string;
         logo: string;
-      };
+      } | null;
     }>('/api/restaurant/me', {
       headers: {
         'Authorization': `Bearer ${token}`,

@@ -30,8 +30,10 @@ import {
   CreditCard,
   Target,
   Crown,
+  Check,
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
+import { getSuperAdminToken, redirectToSuperAdminLogin } from '@/lib/super-admin-auth';
 
 // ----------------- API + Types -----------------
 
@@ -43,17 +45,13 @@ type GetRestaurantsResponse = {
     _id: string;
     name: string;
     city: string;
-    email?: string;
-    phone?: string;
+    email: string;
+    phone: string;
     businessNumber?: string;
-    logo?: string | null;
-    isActive: boolean;
-    subscriptionStatus: string;
+    isActive?: boolean;
+    subscriptionStatus?: string;
     subscriptionPlan?: string;
-    createdAt: string;
-    updatedAt?: string;
-    createdBy?: { _id: string; email: string };
-    __v?: number;
+    createdAt?: string;
   }>;
 };
 
@@ -62,33 +60,19 @@ type CreateRestaurantPayload = {
   city: string;
   address: string;
   postalCode: string;
-  country: string;
+  country: 'CA' | 'US';
   email: string;
   phone: string;
   businessNumber: string;
-  subscriptionPlan: 'legacy-free' | 'small' | 'large';
+  subscriptionPlan: 'small' | 'large' | 'legacy-free';
 };
 
-type CreatedRestaurant = {
-  _id: string;
-  name: string;
-  city: string;
-  email?: string;
-  phone?: string;
-  businessNumber?: string;
-  logo?: string | null;
-  isActive: boolean;
-  subscriptionStatus: string;
-  createdAt: string;
-};
-
-// unified UI type
 type RestaurantUI = {
   id: string;
   name: string;
   city: string;
-  email?: string;
-  phone?: string;
+  email: string;
+  phone: string;
   businessNumber?: string;
   isActive: boolean;
   subscriptionStatus: string;
@@ -97,10 +81,11 @@ type RestaurantUI = {
 };
 
 async function api<T>(path: string, init?: RequestInit): Promise<T> {
-  const token =
-    (typeof window !== 'undefined' && (localStorage.getItem('token') || localStorage.getItem('preftech_token'))) ||
-    null;
-  if (!token) throw new Error('Missing auth token. Please sign in first.');
+  const token = getSuperAdminToken();
+  if (!token) {
+    redirectToSuperAdminLogin();
+    throw new Error('Missing auth token. Redirecting to sign in...');
+  }
 
   const res = await fetch(`${API_BASE}${path}`, {
     ...init,
@@ -118,6 +103,11 @@ async function api<T>(path: string, init?: RequestInit): Promise<T> {
     data = await res.json();
   } catch {
     // non-JSON; leave as null
+  }
+
+  if (res.status === 401) {
+    redirectToSuperAdminLogin();
+    throw new Error('Session expired. Redirecting to sign in...');
   }
 
   if (!res.ok) {
@@ -151,6 +141,45 @@ export default function RestaurantsPage() {
     subscriptionPlan: 'legacy-free',
   });
 
+  const [postalValidating, setPostalValidating] = useState(false);
+  const [postalError, setPostalError] = useState<string | null>(null);
+  const [postalValid, setPostalValid] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    if (!newRestaurant.postalCode || newRestaurant.postalCode.trim().length < 3) {
+      setPostalValid(null);
+      setPostalError(null);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      setPostalValidating(true);
+      setPostalError(null);
+      try {
+        const res = await fetch(
+          `${API_BASE}/api/auth/validate-postal-code?code=${encodeURIComponent(newRestaurant.postalCode)}&country=${newRestaurant.country}`
+        );
+        const data = await res.json();
+        if (res.ok && data.valid) {
+          setPostalValid(true);
+          setPostalError(null);
+          if (data.city && !newRestaurant.city) {
+            setNewRestaurant(s => ({ ...s, city: data.city }));
+          }
+        } else {
+          setPostalValid(false);
+          setPostalError(data.message || 'Invalid postal code for selected country');
+        }
+      } catch {
+        setPostalValid(null);
+      } finally {
+        setPostalValidating(false);
+      }
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, [newRestaurant.postalCode, newRestaurant.country]);
+
   // Row action states
   const [workingToggle, setWorkingToggle] = useState<Record<string, boolean>>({});
   const [workingDelete, setWorkingDelete] = useState<Record<string, boolean>>({});
@@ -176,6 +205,9 @@ export default function RestaurantsPage() {
       }));
       setRestaurants(mapped);
     } catch (err: any) {
+      if (err?.message?.includes('Redirecting')) {
+        return;
+      }
       setErrorMsg(err?.message || 'Failed to load restaurants');
     } finally {
       setLoading(false);
@@ -228,6 +260,12 @@ export default function RestaurantsPage() {
   // Create (POST /api/super-admin/restaurants)
   const addRestaurant = async () => {
     if (creating) return;
+
+    if (postalValid === false) {
+      setErrorMsg(postalError || 'Please enter a valid postal code / ZIP for the selected country.');
+      return;
+    }
+
     setCreating(true);
     setErrorMsg(null);
     try {
@@ -257,6 +295,8 @@ export default function RestaurantsPage() {
 
       // reset form
       setNewRestaurant({ name: '', city: '', address: '', postalCode: '', country: 'CA', email: '', phone: '', businessNumber: '', subscriptionPlan: 'legacy-free' });
+      setPostalValid(null);
+      setPostalError(null);
       setIsAddDialogOpen(false);
     } catch (err: any) {
       setErrorMsg(err?.message || 'Failed to create restaurant');
@@ -390,7 +430,7 @@ export default function RestaurantsPage() {
                   <select
                     id="country"
                     value={newRestaurant.country}
-                    onChange={(e) => setNewRestaurant((s) => ({ ...s, country: e.target.value }))}
+                    onChange={(e) => setNewRestaurant((s) => ({ ...s, country: e.target.value as 'CA' | 'US' }))}
                     className="mt-2 w-full h-10 px-3 border border-border rounded-md bg-panel text-ink focus:outline-none focus:ring-2 focus:ring-primary text-sm"
                   >
                     <option value="CA">Canada (CA)</option>
@@ -411,14 +451,36 @@ export default function RestaurantsPage() {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="postalCode" className="text-ink">Postal Code / ZIP</Label>
-                  <Input
-                    id="postalCode"
-                    value={newRestaurant.postalCode}
-                    onChange={(e) => setNewRestaurant((s) => ({ ...s, postalCode: e.target.value }))}
-                    placeholder="A1B 2C3"
-                    className="mt-2 border-border focus-visible:ring-2 focus-visible:ring-primary"
-                  />
+                  <Label htmlFor="postalCode" className="text-ink">
+                    {newRestaurant.country === 'US' ? 'ZIP Code' : 'Postal Code'}
+                  </Label>
+                  <div className="relative">
+                    <Input
+                      id="postalCode"
+                      value={newRestaurant.postalCode}
+                      onChange={(e) => setNewRestaurant((s) => ({ ...s, postalCode: e.target.value }))}
+                      placeholder={newRestaurant.country === 'US' ? '90210' : 'M5V 2H1'}
+                      className={`mt-2 border-border focus-visible:ring-2 focus-visible:ring-primary ${
+                        postalValid === false ? 'border-red-500' : postalValid === true ? 'border-green-500' : ''
+                      }`}
+                    />
+                    {postalValidating && (
+                      <div className="absolute right-3 top-4">
+                        <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                      </div>
+                    )}
+                    {postalValid === true && !postalValidating && (
+                      <div className="absolute right-3 top-4 text-green-500">
+                        <Check className="h-4 w-4" />
+                      </div>
+                    )}
+                  </div>
+                  {postalError && (
+                    <p className="text-xs text-red-500 mt-1">{postalError}</p>
+                  )}
+                  {postalValid === true && (
+                    <p className="text-xs text-green-600 mt-1">Verified {newRestaurant.country === 'US' ? 'ZIP code' : 'postal code'}</p>
+                  )}
                 </div>
               </div>
 

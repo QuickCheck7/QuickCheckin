@@ -21,6 +21,26 @@ router.post('/verify-login-otp', verifyLoginOTP);
 
 // Token validation endpoint
 router.get('/me', authenticateUser, (req, res) => {
+  if (req.user.role === 'superadmin' || !req.user.restaurant) {
+    return res.json({
+      restaurantId: req.user.restaurantId || null,
+      phone: req.user.phone || req.user.superAdmin?.email || '',
+      role: req.user.role || 'superadmin',
+      restaurant: req.user.restaurant ? {
+        id: req.user.restaurant._id,
+        name: req.user.restaurant.name,
+        city: req.user.restaurant.city,
+        email: req.user.restaurant.email,
+        phone: req.user.restaurant.phone,
+        logo: req.user.restaurant.logo
+      } : null,
+      superAdmin: req.user.superAdmin ? {
+        id: req.user.superAdmin._id,
+        email: req.user.superAdmin.email
+      } : null
+    });
+  }
+
   res.json({
     restaurantId: req.user.restaurantId,
     phone: req.user.phone,

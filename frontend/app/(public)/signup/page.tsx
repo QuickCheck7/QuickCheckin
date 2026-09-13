@@ -54,9 +54,61 @@ function SignupForm() {
   const [agreedToPaidPlan, setAgreedToPaidPlan] = useState<boolean>(false);
   const [showDuplicateModal, setShowDuplicateModal] = useState<boolean>(false);
 
+  const [verifyingPostalCode, setVerifyingPostalCode] = useState(false);
+  const [postalCodeAvailable, setPostalCodeAvailable] = useState<boolean | null>(null);
+  const [postalCodeError, setPostalCodeError] = useState<string | null>(null);
+
   const plan = formData.seatCapacity > 50 ? 'Large' : 'Small';
   const price = plan === 'Small' ? 299 : 499;
   const currency = formData.country === 'CA' ? 'CAD' : 'USD';
+
+  const verifyPostalCode = async (code: string, country: string) => {
+    const raw = (code || '').trim();
+    if (!raw || raw.length < 3) {
+      setPostalCodeAvailable(null);
+      setPostalCodeError(null);
+      return;
+    }
+
+    setVerifyingPostalCode(true);
+    setPostalCodeError(null);
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/auth/validate-postal-code?code=${encodeURIComponent(raw)}&country=${country}`
+      );
+      const data = await response.json();
+
+      if (response.ok && data.valid) {
+        setPostalCodeAvailable(true);
+        setPostalCodeError(null);
+        setFormData(prev => ({
+          ...prev,
+          city: prev.city || data.city || '',
+          state: prev.state || data.state || '',
+        }));
+      } else {
+        setPostalCodeAvailable(false);
+        setPostalCodeError(data.message || 'Invalid postal code for selected country');
+      }
+    } catch (error) {
+      console.error('Postal code verification error:', error);
+      setPostalCodeAvailable(null);
+    } finally {
+      setVerifyingPostalCode(false);
+    }
+  };
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (formData.postalCode) {
+        verifyPostalCode(formData.postalCode, formData.country);
+      } else {
+        setPostalCodeAvailable(null);
+        setPostalCodeError(null);
+      }
+    }, 450);
+    return () => clearTimeout(timer);
+  }, [formData.postalCode, formData.country]);
 
   const verifyBusinessNumber = async (number: string, country: string) => {
     if (!number || number.replace(/[^0-9]/g, '').length !== 9) {
@@ -107,6 +159,10 @@ function SignupForm() {
     if (currentStep === 1) {
       if (!formData.restaurantName || !formData.country || !formData.state || !formData.city || !formData.address || !formData.postalCode) {
         toast.error('Please fill in all required fields');
+        return;
+      }
+      if (postalCodeAvailable === false) {
+        toast.error(postalCodeError || 'Please enter a valid postal code / ZIP for your country');
         return;
       }
     } else if (currentStep === 2) {
@@ -396,15 +452,34 @@ function SignupForm() {
                     <label className="block text-sm font-medium text-ink mb-2">
                       {formData.country === 'US' ? 'ZIP Code' : 'Postal Code'} *
                     </label>
-                    <input
-                      type="text"
-                      name="postalCode"
-                      required
-                      value={formData.postalCode}
-                      onChange={handleChange}
-                      className="w-full px-4 py-3 border border-border rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent bg-off text-ink"
-                      placeholder={formData.country === 'US' ? '12345' : 'M5V 2H1'}
-                    />
+                    <div className="relative">
+                      <input
+                        type="text"
+                        name="postalCode"
+                        required
+                        value={formData.postalCode}
+                        onChange={handleChange}
+                        className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent bg-off text-ink ${
+                          postalCodeAvailable === false ? 'border-red-500' :
+                          postalCodeAvailable === true ? 'border-green-500' : 'border-border'
+                        }`}
+                        placeholder={formData.country === 'US' ? '90210' : 'M5V 2H1'}
+                      />
+                      {verifyingPostalCode && (
+                        <div className="absolute right-3 top-3.5">
+                          <div className="animate-spin h-5 w-5 border-2 border-primary border-t-transparent rounded-full"></div>
+                        </div>
+                      )}
+                      {postalCodeAvailable === true && !verifyingPostalCode && (
+                        <div className="absolute right-3 top-3.5 text-green-500"><Check size={20} /></div>
+                      )}
+                    </div>
+                    {postalCodeError && (
+                      <p className="text-xs text-red-500 mt-1">{postalCodeError}</p>
+                    )}
+                    {postalCodeAvailable === true && (
+                      <p className="text-xs text-green-600 mt-1">Verified {formData.country === 'US' ? 'ZIP code' : 'postal code'}</p>
+                    )}
                   </div>
                 </motion.div>
               )}
