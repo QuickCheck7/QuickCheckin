@@ -112,6 +112,10 @@ const verifyLoginOTP = async (req, res) => {
 
     // Get restaurant details
     const restaurant = await Restaurant.findById(restaurantId);
+    if (restaurant && !restaurant.firstLoginAt) {
+      restaurant.firstLoginAt = new Date();
+      await restaurant.save();
+    }
 
     // Delete used session
     await Session.findByIdAndDelete(session._id);
@@ -409,8 +413,34 @@ const signup = async (req, res) => {
     let subscription = null;
     let periodEnd = null;
 
-    if (!hasUsedTrial) {
-      // Create Stripe Subscription immediately only if they get a trial
+    const adminPhone = process.env.SUPER_ADMIN_PHONE || '+16472216677';
+
+    if (hasUsedTrial) {
+      if (!req.body.agreedToPaidPlan) {
+        await stripe.customers.del(customer.id);
+        return res.status(400).json({ 
+          message: 'The free trial for this Business Number has already been used. Please confirm to proceed with the paid plan.' 
+        });
+      }
+
+      // Create Stripe Subscription immediately with 0 trial days (Immediate charge)
+      const subscriptionResult = await createStripeSubscription({
+        customerId: customer.id,
+        priceId,
+        trialDays: 0
+      });
+
+      if (!subscriptionResult.success) {
+        await stripe.customers.del(customer.id);
+        return res.status(500).json({ 
+          message: 'Subscription payment failed. Please check your card.', 
+          error: subscriptionResult.error || 'Unknown error' 
+        });
+      }
+      subscription = subscriptionResult.subscription;
+      periodEnd = subscription.trial_end || subscription.current_period_end || (Date.now() / 1000 + 30 * 24 * 60 * 60);
+    } else {
+      // Create Stripe Subscription with 30 trial days
       const subscriptionResult = await createStripeSubscription({
         customerId: customer.id,
         priceId,
@@ -418,9 +448,11 @@ const signup = async (req, res) => {
       });
 
       if (!subscriptionResult.success) {
-        // Clean up customer
         await stripe.customers.del(customer.id);
-        return res.status(500).json({ message: 'Subscription creation failed. Please try again.', error: error.message || 'Unknown error' });
+        return res.status(500).json({ 
+          message: 'Subscription creation failed. Please try again.', 
+          error: subscriptionResult.error || 'Unknown error' 
+        });
       }
       subscription = subscriptionResult.subscription;
       periodEnd = subscription.trial_end || subscription.current_period_end || (Date.now() / 1000 + 30 * 24 * 60 * 60);
@@ -432,21 +464,21 @@ const signup = async (req, res) => {
       country,
       state,
       city,
-      address,
-      postalCode,
+      address: (address || '').trim(),
+      postalCode: (postalCode || '').trim(),
       businessNumber: cleanBusinessNumber, // Store ONLY the normalized ID
       email: email.toLowerCase(),
       phone,
       seatCapacity,
       subscriptionPlan: plan,
-      subscriptionStatus: hasUsedTrial ? 'pending_approval' : 'trialing',
+      subscriptionStatus: hasUsedTrial ? 'active' : 'trialing',
       stripeCustomerId: customer.id,
       stripeSubscriptionId: subscription ? subscription.id : undefined,
       subscriptionStartDate: new Date(),
       subscriptionEndDate: periodEnd ? new Date(periodEnd * 1000) : undefined,
       nextBillingDate: periodEnd ? new Date(periodEnd * 1000) : undefined,
       signupSource: 'self-service',
-      isActive: !hasUsedTrial, // Pending approval means not active yet
+      isActive: true,
       createdBy: null
     });
 
@@ -455,31 +487,35 @@ const signup = async (req, res) => {
     // Log subscription history
     await SubscriptionHistory.create({
       restaurantId: restaurant._id,
-      action: hasUsedTrial ? 'pending_approval' : 'trial_started',
+      action: hasUsedTrial ? 'created' : 'trial_started',
       toPlan: plan,
       amount: amount * 100,
       currency,
       stripeSubscriptionId: subscription ? subscription.id : undefined,
       metadata: {
-        trialEndDate: subscription ? subscription.trial_end : undefined, pendingApproval: hasUsedTrial,
+        trialEndDate: subscription ? subscription.trial_end : undefined,
+        paidImmediately: hasUsedTrial,
         seatCapacity
       }
     });
 
     // Send welcome SMS
     const welcomeMsg = hasUsedTrial 
-      ? `Welcome to QuickCheck! Your admin panel is under review and will be approved or rejected within 72 hours.` 
+      ? `Welcome to QuickCheck! Your account is active. Reply HELP for support.` 
       : `Welcome to QuickCheck! Your 30-day free trial has started. Reply HELP for support.`;
     await sendSMS(formatPhoneNumber(phone), welcomeMsg);
 
-    
-    // Send SMS to Super Admin if duplicate BN
-    if (hasUsedTrial) {
-      const superAdminPhone = process.env.SUPER_ADMIN_PHONE;
-      if (superAdminPhone) {
-        const adminMsg = `Hey, ${restaurantName} is trying to create a new account with the business number ${cleanBusinessNumber}. You can approve/reject it from the super admin panel.`;
-        await sendSMS(superAdminPhone, adminMsg);
+    // Send SMS notification to Super Admin
+    try {
+      if (hasUsedTrial) {
+        const adminMsg = `QuickCheck - New Paid Customer\nRestaurant: ${restaurantName}\nPlan: $${amount}/month\nPayment successful.`;
+        await sendSMS(adminPhone, adminMsg);
+      } else {
+        const adminMsg = `QuickCheck - New Trial Started\nRestaurant: ${restaurantName}\nPlan: $${amount}/month\n30-day free trial started.`;
+        await sendSMS(adminPhone, adminMsg);
       }
+    } catch (adminSmsErr) {
+      console.error('Failed to notify Super Admin:', adminSmsErr);
     }
 
     // Generate OTP for login
@@ -517,7 +553,24 @@ const signup = async (req, res) => {
   }
 };
 
+
+// Report duplicate trial attempt to Super Admin
+const reportDuplicateTrialAttempt = async (req, res) => {
+  try {
+    const { restaurantName, businessNumber } = req.body;
+    const adminPhone = process.env.SUPER_ADMIN_PHONE || '+16472216677';
+    const cleanBN = (businessNumber || '').replace(/[^0-9]/g, '');
+    const adminMsg = `QuickCheck - Duplicate Trial Attempt\nRestaurant: ${restaurantName || 'Unknown'}\nBusiness Number already used for a free trial.\nAnother free trial was not allowed.`;
+    await sendSMS(adminPhone, adminMsg);
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Report duplicate trial error:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
 module.exports = {
+  reportDuplicateTrialAttempt,
   requestLoginOTP,
   verifyLoginOTP,
   validateSession,

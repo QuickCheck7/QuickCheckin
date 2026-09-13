@@ -60,9 +60,13 @@ type GetRestaurantsResponse = {
 type CreateRestaurantPayload = {
   name: string;
   city: string;
+  address: string;
+  postalCode: string;
+  country: string;
   email: string;
   phone: string;
   businessNumber: string;
+  subscriptionPlan: 'legacy-free' | 'small' | 'large';
 };
 
 type CreatedRestaurant = {
@@ -138,9 +142,13 @@ export default function RestaurantsPage() {
   const [newRestaurant, setNewRestaurant] = useState<CreateRestaurantPayload>({
     name: '',
     city: '',
+    address: '',
+    postalCode: '',
+    country: 'CA',
     email: '',
     phone: '',
     businessNumber: '',
+    subscriptionPlan: 'legacy-free',
   });
 
   // Row action states
@@ -245,7 +253,7 @@ export default function RestaurantsPage() {
       ]);
 
       // reset form
-      setNewRestaurant({ name: '', city: '', email: '', phone: '', businessNumber: '' });
+      setNewRestaurant({ name: '', city: '', address: '', postalCode: '', country: 'CA', email: '', phone: '', businessNumber: '', subscriptionPlan: 'legacy-free' });
       setIsAddDialogOpen(false);
     } catch (err: any) {
       setErrorMsg(err?.message || 'Failed to create restaurant');
@@ -363,15 +371,66 @@ export default function RestaurantsPage() {
                 />
               </div>
 
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="city" className="text-ink">City</Label>
+                  <Input
+                    id="city"
+                    value={newRestaurant.city}
+                    onChange={(e) => setNewRestaurant((s) => ({ ...s, city: e.target.value }))}
+                    placeholder="Enter city"
+                    className="mt-2 border-border focus-visible:ring-2 focus-visible:ring-primary"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="country" className="text-ink">Country</Label>
+                  <select
+                    id="country"
+                    value={newRestaurant.country}
+                    onChange={(e) => setNewRestaurant((s) => ({ ...s, country: e.target.value }))}
+                    className="mt-2 w-full h-10 px-3 border border-border rounded-md bg-panel text-ink focus:outline-none focus:ring-2 focus:ring-primary text-sm"
+                  >
+                    <option value="CA">Canada (CA)</option>
+                    <option value="US">United States (US)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="address" className="text-ink">Street Address</Label>
+                  <Input
+                    id="address"
+                    value={newRestaurant.address}
+                    onChange={(e) => setNewRestaurant((s) => ({ ...s, address: e.target.value }))}
+                    placeholder="123 Main St"
+                    className="mt-2 border-border focus-visible:ring-2 focus-visible:ring-primary"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="postalCode" className="text-ink">Postal Code / ZIP</Label>
+                  <Input
+                    id="postalCode"
+                    value={newRestaurant.postalCode}
+                    onChange={(e) => setNewRestaurant((s) => ({ ...s, postalCode: e.target.value }))}
+                    placeholder="A1B 2C3"
+                    className="mt-2 border-border focus-visible:ring-2 focus-visible:ring-primary"
+                  />
+                </div>
+              </div>
+
               <div>
-                <Label htmlFor="city" className="text-ink">City</Label>
-                <Input
-                  id="city"
-                  value={newRestaurant.city}
-                  onChange={(e) => setNewRestaurant((s) => ({ ...s, city: e.target.value }))}
-                  placeholder="Enter city"
-                  className="mt-2 border-border focus-visible:ring-2 focus-visible:ring-primary"
-                />
+                <Label htmlFor="plan" className="text-ink">Subscription Plan</Label>
+                <select
+                  id="plan"
+                  value={newRestaurant.subscriptionPlan}
+                  onChange={(e) => setNewRestaurant((s) => ({ ...s, subscriptionPlan: e.target.value as any }))}
+                  className="mt-2 w-full h-10 px-3 border border-border rounded-md bg-panel text-ink focus:outline-none focus:ring-2 focus:ring-primary text-sm"
+                >
+                  <option value="legacy-free">Legacy Free (Lifetime Free)</option>
+                  <option value="small">Small Plan ($299/month)</option>
+                  <option value="large">Large Plan ($499/month)</option>
+                </select>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -668,27 +727,7 @@ export default function RestaurantsPage() {
 
                   {/* Actions */}
                   <div className="mt-5 flex gap-2">
-                    {r.subscriptionStatus === 'pending_approval' && (
-                      <>
-                        <Button
-                          variant="default"
-                          onClick={() => approveTrial(r.id)}
-                          disabled={toggling || deleting}
-                          className="bg-green-600 hover:bg-green-700 text-white"
-                          size="sm"
-                        >
-                          {toggling ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Approve Trial'}
-                        </Button>
-                        <Button
-                          variant="destructive"
-                          onClick={() => declineTrial(r.id)}
-                          disabled={toggling || deleting}
-                          size="sm"
-                        >
-                          {toggling ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Decline Trial'}
-                        </Button>
-                      </>
-                    )}
+
                     <Button
                       variant={r.isActive ? 'outline' : 'default'}
                       onClick={() => toggleStatus(r.id)}

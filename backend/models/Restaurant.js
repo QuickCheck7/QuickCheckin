@@ -108,6 +108,10 @@ const restaurantSchema = new mongoose.Schema({
     enum: ['self-service', 'super-admin'],
     default: 'super-admin' // Existing restaurants are admin-created
   },
+  firstLoginAt: {
+    type: Date,
+    default: null
+  },
   avgWaitTime: {
     type: Number,
     default: 0

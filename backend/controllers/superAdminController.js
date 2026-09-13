@@ -70,28 +70,65 @@ const getRestaurants = async (req, res) => {
 // Add new restaurant
 const addRestaurant = async (req, res) => {
   try {
-    const { name, city, email, phone, businessNumber } = req.body;
+    const { name, city, address, postalCode, country, email, phone, businessNumber, subscriptionPlan } = req.body;
     
+    if (!name || !email || !phone) {
+      return res.status(400).json({ message: 'Name, email, and phone are required.' });
+    }
+
     // Check if restaurant email already exists
-    const existingRestaurant = await Restaurant.findOne({ email });
+    const existingRestaurant = await Restaurant.findOne({ email: email.toLowerCase() });
     
     if (existingRestaurant) {
       return res.status(400).json({ 
         message: 'Restaurant with this email already exists.' 
       });
     }
-    
+
+    const cleanBN = (businessNumber || '').trim().replace(/[^0-9]/g, '');
+    const plan = ['small', 'large', 'legacy-free'].includes(subscriptionPlan) ? subscriptionPlan : 'legacy-free';
+    const status = plan === 'legacy-free' ? 'legacy-free' : 'active';
+    const capacity = plan === 'small' ? 50 : plan === 'large' ? 100 : null;
+
     // Create new restaurant
     const restaurant = new Restaurant({
-      name,
-      city,
-      email,
-      phone,
-      businessNumber,
+      name: name.trim(),
+      city: (city || '').trim(),
+      address: (address || '').trim(),
+      postalCode: (postalCode || '').trim(),
+      country: country || 'CA',
+      email: email.toLowerCase().trim(),
+      phone: phone.trim(),
+      businessNumber: cleanBN || '000000000',
+      subscriptionPlan: plan,
+      subscriptionStatus: status,
+      seatCapacity: capacity,
+      isActive: true,
+      signupSource: 'super-admin',
       createdBy: req.superAdmin._id
     });
     
     await restaurant.save();
+
+    // Send SMS for Small or Large plans
+    if (plan === 'small' || plan === 'large') {
+      try {
+        const userMsg = `Your QuickCheck account has been created. Please login using your mobile number ${phone}. You will be charged after 24 hours of first login.`;
+        await sendSMS(formatPhoneNumber(phone), userMsg);
+      } catch (smsErr) {
+        console.error('Failed to send welcome SMS to restaurant:', smsErr);
+      }
+
+      // Notify Super Admin
+      try {
+        const adminPhone = process.env.SUPER_ADMIN_PHONE || '+16472216677';
+        const planPrice = plan === 'large' ? 499 : 299;
+        const adminMsg = `QuickCheck - New Restaurant Added\nRestaurant: ${name}\nPlan: ${planPrice}/month\nAdded via Super Admin.`;
+        await sendSMS(adminPhone, adminMsg);
+      } catch (adminSmsErr) {
+        console.error('Failed to notify Super Admin:', adminSmsErr);
+      }
+    }
     
     res.status(201).json({
       message: 'Restaurant added successfully',

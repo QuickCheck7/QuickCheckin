@@ -51,6 +51,8 @@ function SignupForm() {
   const [verifyingBusinessNumber, setVerifyingBusinessNumber] = useState(false);
   const [businessNumberAvailable, setBusinessNumberAvailable] = useState<boolean | null>(null);
   const [hasUsedTrial, setHasUsedTrial] = useState<boolean>(false);
+  const [agreedToPaidPlan, setAgreedToPaidPlan] = useState<boolean>(false);
+  const [showDuplicateModal, setShowDuplicateModal] = useState<boolean>(false);
 
   const plan = formData.seatCapacity > 50 ? 'Large' : 'Small';
   const price = plan === 'Small' ? 299 : 499;
@@ -131,8 +133,37 @@ function SignupForm() {
         toast.error('Verification failed. Please check connection.');
         return;
       }
+
+      // Check if business number already had a trial
+      if (hasUsedTrial && !agreedToPaidPlan) {
+        setShowDuplicateModal(true);
+        return;
+      }
     }
     setCurrentStep(prev => Math.min(3, prev + 1));
+  };
+
+  const handleConfirmPaidPlan = () => {
+    setAgreedToPaidPlan(true);
+    setShowDuplicateModal(false);
+    setCurrentStep(3);
+  };
+
+  const handleCancelDuplicateTrial = async () => {
+    setShowDuplicateModal(false);
+    try {
+      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/duplicate-trial-attempt`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          restaurantName: formData.restaurantName,
+          businessNumber: formData.businessNumber
+        })
+      });
+    } catch (e) {
+      // ignore
+    }
+    toast.info('Signup cancelled. A free trial was already used for this Business Number.');
   };
 
   const handlePrevious = () => {
@@ -184,6 +215,7 @@ function SignupForm() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...formData,
+          agreedToPaidPlan,
           paymentMethodId: paymentMethod.id
         })
       });
@@ -405,9 +437,10 @@ function SignupForm() {
                     </div>
                     <p className="text-xs text-muted mt-1">9 digits</p>
                     {hasUsedTrial && (
-                      <p className="text-sm text-yellow-600 mt-2 bg-yellow-50 p-2 rounded border border-yellow-200">
-                        This number is already in use. A small verification will be done before you can access the free trial.
-                      </p>
+                      <div className="text-sm text-amber-800 mt-2 bg-amber-50 p-3 rounded-xl border border-amber-200">
+                        <p className="font-semibold">Notice: Free Trial Already Used</p>
+                        <p className="text-xs mt-1 text-amber-700">This Business Number has already completed its one-time 30-day free trial. You can continue with the paid plan ({plan} Plan: ${price} {currency}/mo).</p>
+                      </div>
                     )}
                   </div>
 
@@ -519,7 +552,11 @@ function SignupForm() {
                         <p className="text-sm text-muted">{currency}/month</p>
                       </div>
                     </div>
-                    <p className="text-xs text-green-600 font-medium">✓ 30 days FREE trial</p>
+                    {hasUsedTrial && agreedToPaidPlan ? (
+                      <p className="text-xs text-amber-700 font-semibold">✓ Paid Subscription — Immediate Billing (No Free Trial)</p>
+                    ) : (
+                      <p className="text-xs text-green-600 font-medium">✓ 30 days FREE trial</p>
+                    )}
                   </div>
 
                   <div>
@@ -542,7 +579,9 @@ function SignupForm() {
                       />
                     </div>
                     <p className="text-xs text-muted mt-2">
-                      Your card will not be charged during the 30-day trial
+                      {hasUsedTrial && agreedToPaidPlan
+                        ? `Your card will be charged $${price} ${currency} immediately upon account creation.`
+                        : 'Your card will not be charged during the 30-day trial'}
                     </p>
                   </div>
 
@@ -558,7 +597,11 @@ function SignupForm() {
                     disabled={loading || !stripe}
                     className="w-full bg-primary text-white py-3 px-6 rounded-xl font-semibold hover:bg-primary/90 disabled:bg-muted disabled:cursor-not-allowed transition"
                   >
-                    {loading ? 'Creating Account...' : 'Start Free Trial'}
+                    {loading
+                      ? 'Processing...'
+                      : hasUsedTrial && agreedToPaidPlan
+                      ? `Pay $${price} & Create Account`
+                      : 'Start Free Trial'}
                   </button>
                 </motion.div>
               )}
@@ -605,6 +648,43 @@ function SignupForm() {
           <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
         </div>
       </motion.div>
+
+      {/* Duplicate Trial Confirmation Modal */}
+      {showDuplicateModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-panel max-w-md w-full rounded-2xl p-6 border border-border shadow-2xl space-y-4">
+            <div className="w-12 h-12 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center text-2xl font-bold">
+              ⚠️
+            </div>
+            <div>
+              <h3 className="text-xl font-bold font-display text-ink">Free Trial Already Used</h3>
+              <p className="text-sm text-muted mt-2 leading-relaxed">
+                This Business Number (<span className="font-mono font-medium text-ink">{formData.businessNumber}</span>) has already completed its one-time 30-day free trial.
+              </p>
+              <p className="text-sm text-muted mt-2 leading-relaxed">
+                Would you like to proceed with the paid plan (<span className="font-bold text-ink">{plan} Plan: ${price} {currency}/month</span>) for this new location?
+              </p>
+            </div>
+
+            <div className="pt-2 flex flex-col sm:flex-row gap-3">
+              <button
+                type="button"
+                onClick={handleConfirmPaidPlan}
+                className="flex-1 bg-primary text-white py-3 px-4 rounded-xl font-semibold hover:bg-primary/90 transition text-sm text-center"
+              >
+                Yes, Continue with Paid Plan
+              </button>
+              <button
+                type="button"
+                onClick={handleCancelDuplicateTrial}
+                className="py-3 px-4 border border-border rounded-xl font-medium text-muted hover:text-ink hover:bg-off transition text-sm text-center"
+              >
+                Cancel / No, Thanks
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

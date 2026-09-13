@@ -470,12 +470,18 @@ const handleCustomerResponse = async (req, res) => {
       return res.status(400).json({ message: 'Phone number and message body are required.' });
     }
     
-    // Find the most recent notified booking from this phone
-    const booking = await Booking.findOne({
+    // Find the most recent notified booking from this phone, or fallback to any recent booking
+    let booking = await Booking.findOne({
       customerPhone: { $regex: from.replace('+', ''), $options: 'i' },
       status: 'notified'
     }).sort({ notificationSentAt: -1 }).populate('restaurantId');
     
+    if (!booking) {
+      booking = await Booking.findOne({
+        customerPhone: { $regex: from.replace('+', ''), $options: 'i' }
+      }).sort({ createdAt: -1 }).populate('restaurantId');
+    }
+
     if (!booking) {
       return res.status(404).json({ message: 'No active booking found.' });
     }

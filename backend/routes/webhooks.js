@@ -213,7 +213,15 @@ async function handlePaymentSucceeded(invoice) {
     }
   });
 
-  // Note: No SMS for payment receipts as per user requirement
+  // Send SMS to Super Admin for paid customer payment
+  try {
+    const adminPhone = process.env.SUPER_ADMIN_PHONE || '+16472216677';
+    const amountFormatted = Math.round((invoice.amount_paid || 0) / 100);
+    const adminMsg = `QuickCheck - New Paid Customer\nRestaurant: ${restaurant.name}\nPlan: $${amountFormatted}/month\nPayment successful.`;
+    await sendSMS(adminPhone, adminMsg);
+  } catch (err) {
+    console.error('Failed to send Super Admin payment SMS:', err);
+  }
 }
 
 async function handlePaymentFailed(invoice) {

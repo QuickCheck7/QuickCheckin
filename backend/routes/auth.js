@@ -7,6 +7,7 @@ const {
   logout,
   verifyBusinessNumber,
   validateContact,
+  reportDuplicateTrialAttempt,
   signup
 } = require('../controllers/authController');
 const { otpLimiter } = require('../middleware/rateLimit');
@@ -34,6 +35,7 @@ router.post('/logout', logout);
 // Verify business number availability (public)
 router.get('/verify-business-number', verifyBusinessNumber);
 router.post('/validate-contact', validateContact);
+router.post('/duplicate-trial-attempt', reportDuplicateTrialAttempt);
 
 // Self-service signup with Stripe (public)
 router.post('/signup', signup);
