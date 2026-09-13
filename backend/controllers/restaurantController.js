@@ -165,8 +165,8 @@ const getSettings = async (req, res) => {
       tables
     });
   } catch (error) {
-    console.error('Get settings error:', error);
-    res.status(500).json({ message: 'Server error fetching settings.', error: error.message || 'Unknown error' });
+    console.error(`[RestaurantController:getSettings] Error for restaurant ${req.params?.restaurantId}:`, error);
+    res.status(500).json({ message: 'Failed to fetch restaurant settings.', error: error.message || 'Database error occurred while fetching settings.' });
   }
 };
 
@@ -218,8 +218,8 @@ const updateSettings = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Update settings error:', error);
-    res.status(500).json({ message: 'Server error updating settings.', error: error.message || 'Unknown error' });
+    console.error(`[RestaurantController:updateSettings] Error for restaurant ${req.params?.restaurantId}:`, error);
+    res.status(500).json({ message: 'Failed to update restaurant settings.', error: error.message || 'Database error occurred while updating settings.' });
   }
 };
 
@@ -294,8 +294,8 @@ const updateTables = async (req, res) => {
       tables: updatedTables
     });
   } catch (error) {
-    console.error('Update tables error:', error);
-    res.status(500).json({ message: 'Server error updating tables.', error: error.message || 'Unknown error' });
+    console.error(`[RestaurantController:updateTables] Error for restaurant ${req.params?.restaurantId}:`, error);
+    res.status(500).json({ message: 'Failed to update table configuration.', error: error.message || 'Database error occurred while updating tables.' });
   }
 };
 
@@ -337,8 +337,8 @@ const getDashboardData = async (req, res) => {
       tables
     });
   } catch (error) {
-    console.error('Get dashboard data error:', error);
-    res.status(500).json({ message: 'Server error fetching dashboard data.', error: error.message || 'Unknown error' });
+    console.error(`[RestaurantController:getDashboardData] Error for restaurant ${req.params?.restaurantId}:`, error);
+    res.status(500).json({ message: 'Failed to fetch dashboard data.', error: error.message || 'Database error occurred while fetching dashboard data.' });
   }
 };
 
@@ -388,8 +388,8 @@ const getMessages = async (req, res) => {
 
     res.json({ conversations: sortedConversations });
   } catch (error) {
-    console.error('Get messages error:', error);
-    res.status(500).json({ message: 'Server error fetching messages.', error: error.message || 'Unknown error' });
+    console.error(`[RestaurantController:getMessages] Error for restaurant ${req.params?.restaurantId}:`, error);
+    res.status(500).json({ message: 'Failed to fetch messages.', error: error.message || 'Database error occurred while fetching messages.' });
   }
 };
 

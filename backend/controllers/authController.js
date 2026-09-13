@@ -56,8 +56,8 @@ const requestLoginOTP = async (req, res) => {
 
     res.json({ message: 'OTP sent successfully to your phone number' });
   } catch (error) {
-    console.error('Request login OTP error:', error);
-    res.status(500).json({ message: 'Server error sending OTP.', error: error.message || 'Unknown error' });
+    console.error(`[AuthController:requestLoginOTP] Error for phone ${req.body?.phone}:`, error);
+    res.status(500).json({ message: 'Failed to send OTP code.', error: error.message || 'Error generating or sending OTP.' });
   }
 };
 
@@ -145,8 +145,8 @@ const verifyLoginOTP = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Verify login OTP error:', error);
-    res.status(500).json({ message: 'Server error verifying OTP.', error: error.message || 'Unknown error' });
+    console.error(`[AuthController:verifyLoginOTP] Error for phone ${req.body?.phone}:`, error);
+    res.status(500).json({ message: 'Failed to verify OTP code.', error: error.message || 'Error occurred while verifying OTP.' });
   }
 };
 
@@ -545,10 +545,10 @@ const signup = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Signup error:', error);
+    console.error(`[AuthController:signup] Error for restaurant "${req.body?.restaurantName}" (${req.body?.email}):`, error);
     res.status(500).json({ 
-      message: 'Server error during signup. Please try again.',
-      error: error.message || 'Unknown error'
+      message: 'Registration failed. Please verify your details and payment method.',
+      error: error.message || 'Database or payment error occurred during signup.'
     });
   }
 };
@@ -564,8 +564,8 @@ const reportDuplicateTrialAttempt = async (req, res) => {
     await sendSMS(adminPhone, adminMsg);
     res.json({ success: true });
   } catch (error) {
-    console.error('Report duplicate trial error:', error);
-    res.status(500).json({ error: error.message });
+    console.error(`[AuthController:reportDuplicateTrialAttempt] Error for "${req.body?.restaurantName}":`, error);
+    res.status(500).json({ message: 'Failed to report duplicate trial attempt.', error: error.message });
   }
 };
 

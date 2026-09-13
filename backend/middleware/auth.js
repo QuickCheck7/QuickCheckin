@@ -12,7 +12,7 @@ const authenticateSuperAdmin = async (req, res, next) => {
       token = req.query?.token || req.headers['x-auth-token'] || req.headers['x-session-token'];
     }
     
-    if (!token) {
+    if (!token || token === 'null' || token === 'undefined') {
       return res.status(401).json({ message: 'Access denied. No token provided.' });
     }
     
@@ -20,13 +20,15 @@ const authenticateSuperAdmin = async (req, res, next) => {
     const superAdmin = await SuperAdmin.findById(decoded.id);
     
     if (!superAdmin) {
+      console.warn(`[Auth:SuperAdmin] Super admin not found for id ${decoded.id} on path ${req.originalUrl}`);
       return res.status(401).json({ message: 'Token is not valid.' });
     }
     
     req.superAdmin = superAdmin;
     next();
   } catch (error) {
-    res.status(401).json({ message: 'Token is not valid.', error: error.message });
+    console.error(`[Auth:SuperAdmin] Authentication failed on ${req.method} ${req.originalUrl}:`, error.message);
+    res.status(401).json({ message: 'Token is not valid or has expired.', error: error.message });
   }
 };
 
@@ -40,7 +42,7 @@ const authenticateUser = async (req, res, next) => {
       token = req.query?.token || req.headers['x-auth-token'] || req.headers['x-session-token'];
     }
     
-    if (!token) {
+    if (!token || token === 'null' || token === 'undefined') {
       return res.status(401).json({ message: 'Access denied. No token provided.' });
     }
     
@@ -49,8 +51,13 @@ const authenticateUser = async (req, res, next) => {
     // Case 1: Restaurant Admin/Guest token
     if (decoded.restaurantId) {
       const restaurant = await Restaurant.findById(decoded.restaurantId);
-      if (!restaurant || !restaurant.isActive) {
-        return res.status(401).json({ message: 'Restaurant not found or inactive.' });
+      if (!restaurant) {
+        console.warn(`[Auth:User] Restaurant not found: ${decoded.restaurantId} on path ${req.originalUrl}`);
+        return res.status(401).json({ message: 'Restaurant not found.' });
+      }
+      if (!restaurant.isActive) {
+        console.warn(`[Auth:User] Restaurant is inactive: ${decoded.restaurantId} on path ${req.originalUrl}`);
+        return res.status(403).json({ message: 'Restaurant account is inactive. Please contact support.' });
       }
       
       req.user = {
@@ -80,9 +87,11 @@ const authenticateUser = async (req, res, next) => {
       }
     }
     
+    console.warn(`[Auth:User] Invalid token payload for path ${req.originalUrl}`);
     return res.status(401).json({ message: 'Token is not valid.' });
   } catch (error) {
-    res.status(401).json({ message: 'Token is not valid.', error: error.message });
+    console.error(`[Auth:User] Authentication failed on ${req.method} ${req.originalUrl}:`, error.message);
+    res.status(401).json({ message: 'Token is not valid or has expired.', error: error.message });
   }
 };
 

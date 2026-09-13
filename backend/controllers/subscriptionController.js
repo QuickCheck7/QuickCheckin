@@ -59,8 +59,8 @@ const getSubscription = async (req, res) => {
       history
     });
   } catch (error) {
-    console.error('Get subscription error:', error);
-    res.status(500).json({ message: 'Server error fetching subscription.', error: error.message || 'Unknown error' });
+    console.error(`[SubscriptionController:getSubscription] Error for restaurant ${req.params?.id}:`, error);
+    res.status(500).json({ message: 'Failed to fetch subscription details.', error: error.message || 'Error occurred while loading subscription data.' });
   }
 };
 
@@ -127,8 +127,8 @@ const upgradeSubscription = async (req, res) => {
       subscription: result.subscription
     });
   } catch (error) {
-    console.error('Upgrade subscription error:', error);
-    res.status(500).json({ message: 'Server error upgrading subscription.', error: error.message || 'Unknown error' });
+    console.error(`[SubscriptionController:upgradeSubscription] Error for restaurant ${req.params?.id}:`, error);
+    res.status(500).json({ message: 'Failed to upgrade subscription.', error: error.message || 'Error occurred while upgrading subscription.' });
   }
 };
 
@@ -309,8 +309,8 @@ const updatePaymentMethod = async (req, res) => {
 
     res.json({ message: 'Payment method updated successfully' });
   } catch (error) {
-    console.error('Update payment method error:', error);
-    res.status(500).json({ message: 'Failed to update payment method.', error: error.message || 'Unknown error' });
+    console.error(`[SubscriptionController:updatePaymentMethod] Error for restaurant ${req.params?.id}:`, error);
+    res.status(500).json({ message: 'Failed to update payment method.', error: error.message || 'Error communicating with payment provider.' });
   }
 };
 

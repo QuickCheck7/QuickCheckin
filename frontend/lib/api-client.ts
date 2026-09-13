@@ -290,7 +290,7 @@ class ApiClient {
     const token = typeof window !== 'undefined' 
       ? (localStorage.getItem('sessionToken') || localStorage.getItem('token') || localStorage.getItem('preftech_token') || '')
       : '';
-    return `${this.baseUrl}/api/sse/${restaurantId}/events?token=${token}`;
+    return `${this.baseUrl}/api/sse/${restaurantId}/events?token=${encodeURIComponent(token)}`;
   }
 }
 

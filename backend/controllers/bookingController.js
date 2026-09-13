@@ -145,8 +145,8 @@ const createBooking = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Create booking error:', error);
-    res.status(500).json({ message: 'Server error creating booking.', error: error.message || 'Unknown error' });
+    console.error(`[BookingController:createBooking] Error for restaurant ${req.params?.restaurantId}:`, error);
+    res.status(500).json({ message: 'Failed to create booking.', error: error.message || 'Database error occurred while creating booking.' });
   }
 };
 
@@ -218,8 +218,8 @@ const notifyCustomer = async (req, res) => {
     
     res.json({ message: 'Customer notified successfully' });
   } catch (error) {
-    console.error('Notify customer error:', error);
-    res.status(500).json({ message: 'Server error notifying customer.', error: error.message || 'Unknown error' });
+    console.error(`[BookingController:notifyCustomer] Error for booking ${req.params?.bookingId}:`, error);
+    res.status(500).json({ message: 'Failed to notify customer.', error: error.message || 'Error occurred while notifying customer.' });
   }
 };
 
@@ -320,8 +320,8 @@ const markSeated = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Mark seated error:', error);
-    res.status(500).json({ message: 'Server error marking customer seated.', error: error.message || 'Unknown error' });
+    console.error(`[BookingController:markSeated] Error for booking ${req.params?.bookingId}:`, error);
+    res.status(500).json({ message: 'Failed to mark customer seated.', error: error.message || 'Database error occurred while updating booking.' });
   }
 };
 
@@ -389,8 +389,8 @@ const cancelBooking = async (req, res) => {
     
     res.json({ message: 'Booking cancelled successfully' });
   } catch (error) {
-    console.error('Cancel booking error:', error);
-    res.status(500).json({ message: 'Server error cancelling booking.', error: error.message || 'Unknown error' });
+    console.error(`[BookingController:cancelBooking] Error for booking ${req.params?.bookingId}:`, error);
+    res.status(500).json({ message: 'Failed to cancel booking.', error: error.message || 'Database error occurred while cancelling booking.' });
   }
 };
 
@@ -448,8 +448,8 @@ const completeBooking = async (req, res) => {
     
     res.json({ message: 'Booking completed successfully' });
   } catch (error) {
-    console.error('Complete booking error:', error);
-    res.status(500).json({ message: 'Server error completing booking.', error: error.message || 'Unknown error' });
+    console.error(`[BookingController:completeBooking] Error for booking ${req.params?.bookingId}:`, error);
+    res.status(500).json({ message: 'Failed to complete booking.', error: error.message || 'Database error occurred while completing booking.' });
   }
 };
 

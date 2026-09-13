@@ -120,10 +120,13 @@ class SSEEmitter extends EventEmitter {
 
     clients.forEach((res) => {
       try {
+        if (res.writableEnded || res.destroyed) {
+          this.removeClient(restaurantId, res);
+          return;
+        }
         res.write(`data: ${eventData}\n\n`);
-        console.log(`[SSE] ✅ Event sent successfully`);
       } catch (error) {
-        console.error('[SSE] Error sending to client:', error);
+        console.error(`[SSE] Error broadcasting ${eventType} to client:`, error.message);
         this.removeClient(restaurantId, res);
       }
     });

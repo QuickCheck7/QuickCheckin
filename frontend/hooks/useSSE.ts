@@ -108,71 +108,118 @@ export function useSSE(options: UseSSEOptions) {
     }
   }, [playSound]);
 
+  // Keep callbacks in ref to avoid reconnecting SSE on every render
+  const callbacksRef = useRef({ onNewBooking, onStatusChange, onNewMessage, onWaitTimeUpdate });
+  useEffect(() => {
+    callbacksRef.current = { onNewBooking, onStatusChange, onNewMessage, onWaitTimeUpdate };
+  });
+
   useEffect(() => {
     if (!restaurantId) return;
 
-    const sseUrl = apiClient.getSSEUrl(restaurantId);
+    let isMounted = true;
+    let reconnectTimeout: NodeJS.Timeout | null = null;
+    let retryDelay = 2000; // start at 2s
 
     const connect = () => {
-      try {
-        eventSourceRef.current = new EventSource(sseUrl);
+      if (!isMounted) return;
 
-        eventSourceRef.current.onopen = () => {
-          console.log('[SSE] Connected');
+      // Check token first - if not logged in yet, wait
+      const token = typeof window !== 'undefined'
+        ? (localStorage.getItem('sessionToken') || localStorage.getItem('token') || localStorage.getItem('preftech_token'))
+        : null;
+
+      if (!token || token === 'null' || token === 'undefined') {
+        console.warn('[SSE] ⏳ No active auth token found yet. Will retry in 3 seconds...');
+        if (isMounted) {
+          reconnectTimeout = setTimeout(connect, 3000);
+        }
+        return;
+      }
+
+      const sseUrl = apiClient.getSSEUrl(restaurantId);
+
+      try {
+        if (eventSourceRef.current) {
+          eventSourceRef.current.close();
+        }
+
+        const es = new EventSource(sseUrl);
+        eventSourceRef.current = es;
+
+        es.onopen = () => {
+          if (!isMounted) {
+            es.close();
+            return;
+          }
+          console.log('[SSE] ✅ Stream connected successfully for restaurant:', restaurantId);
           setIsConnected(true);
+          retryDelay = 2000; // reset retry backoff on successful connection
         };
 
-        eventSourceRef.current.onmessage = (event) => {
+        es.onmessage = (event) => {
+          if (!isMounted) return;
           try {
             const eventData: SSEEvent = JSON.parse(event.data);
-            console.log('[SSE] 📨 Event received:', eventData.type, eventData);
 
             switch (eventData.type) {
               case 'connected':
-                console.log('[SSE] Connection confirmed');
+                console.log('[SSE] Connection confirmed by server');
                 break;
               case 'new_booking':
-                console.log('[SSE] 🆕 NEW BOOKING - Playing sound!');
+                console.log('[SSE] 🆕 New booking received');
                 playNotificationSound();
-                onNewBooking?.(eventData.data);
+                callbacksRef.current.onNewBooking?.(eventData.data);
                 break;
               case 'status_change':
-                console.log('[SSE] 🔄 Status change');
-                onStatusChange?.(eventData.data);
+                callbacksRef.current.onStatusChange?.(eventData.data);
                 break;
               case 'new_message':
-                onNewMessage?.(eventData.data);
+                callbacksRef.current.onNewMessage?.(eventData.data);
                 break;
               case 'wait_time_update':
-                onWaitTimeUpdate?.(eventData.data);
+                callbacksRef.current.onWaitTimeUpdate?.(eventData.data);
                 break;
             }
           } catch (e) {
-            console.error('[SSE] Error parsing event:', e);
+            console.error('[SSE] Error parsing incoming event data:', e);
           }
         };
 
-        eventSourceRef.current.onerror = (error) => {
-          console.error('[SSE] Error:', error);
+        es.onerror = (error) => {
+          if (!isMounted) return;
+          console.warn(`[SSE] ⚠️ Stream disconnected. Reconnecting in ${Math.round(retryDelay / 1000)}s...`);
           setIsConnected(false);
-          eventSourceRef.current?.close();
+          es.close();
 
-          // Reconnect after 5 seconds
-          setTimeout(connect, 5000);
+          reconnectTimeout = setTimeout(() => {
+            if (isMounted) {
+              retryDelay = Math.min(retryDelay * 1.5, 15000); // Exponential backoff up to 15s
+              connect();
+            }
+          }, retryDelay);
         };
-      } catch (error) {
-        console.error('[SSE] Failed to connect:', error);
-        setTimeout(connect, 5000);
+      } catch (error: any) {
+        if (!isMounted) return;
+        console.error('[SSE] Failed to initialize EventSource:', error.message);
+        reconnectTimeout = setTimeout(connect, 5000);
       }
     };
 
     connect();
 
     return () => {
-      eventSourceRef.current?.close();
+      isMounted = false;
+      if (reconnectTimeout) {
+        clearTimeout(reconnectTimeout);
+      }
+      if (eventSourceRef.current) {
+        eventSourceRef.current.close();
+        eventSourceRef.current = null;
+      }
       setIsConnected(false);
     };
-  }, [restaurantId, onNewBooking, onStatusChange, onNewMessage, onWaitTimeUpdate, playNotificationSound]);
+  }, [restaurantId, playNotificationSound]);
 
   return { isConnected, isAudioReady, testSound: playNotificationSound };
 }
