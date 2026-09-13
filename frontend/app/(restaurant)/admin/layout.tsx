@@ -55,7 +55,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     if (!isLoading) {
       if (!isAuthenticated) {
         // Check localStorage directly as fallback
-        const hasToken = typeof window !== 'undefined' && localStorage.getItem('sessionToken');
+        const hasToken = typeof window !== 'undefined' && (localStorage.getItem('sessionToken') || localStorage.getItem('token') || localStorage.getItem('preftech_token'));
         if (!hasToken) {
           router.replace('/auth');
         }

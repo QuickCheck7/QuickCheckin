@@ -62,6 +62,7 @@ function SignupForm() {
     if (!number || number.replace(/[^0-9]/g, '').length !== 9) {
       setBusinessNumberAvailable(null);
       setHasUsedTrial(false);
+      setAgreedToPaidPlan(false);
       return;
     }
 
@@ -74,10 +75,15 @@ function SignupForm() {
       
       if (response.ok) {
         setBusinessNumberAvailable(true);
-        setHasUsedTrial(data.hasUsedTrial || false);
+        const used = data.hasUsedTrial || false;
+        setHasUsedTrial(used);
+        if (!used) {
+          setAgreedToPaidPlan(false);
+        }
       } else {
         setBusinessNumberAvailable(false);
         setHasUsedTrial(false);
+        setAgreedToPaidPlan(false);
         toast.error(data.message);
       }
     } catch (error) {
@@ -276,10 +282,12 @@ function SignupForm() {
               </h1>
             </Link>
             <h2 className="text-3xl md:text-4xl font-display font-bold text-ink mb-3">
-              Start Your Free Trial
+              {hasUsedTrial && agreedToPaidPlan ? 'Complete Your Subscription' : 'Start Your Free Trial'}
             </h2>
             <p className="text-muted text-lg">
-              30 days free • No credit card charge until trial ends
+              {hasUsedTrial && agreedToPaidPlan
+                ? 'Setup your restaurant • Secure subscription'
+                : '30 days free • No credit card charge until trial ends'}
             </p>
           </div>
 
@@ -526,7 +534,9 @@ function SignupForm() {
                     </div>
                     <div className="mt-3 p-3 bg-primary/10 rounded-lg">
                       <p className="text-sm font-semibold text-primary">{plan} Plan - ${price} {currency}/month</p>
-                      <p className="text-xs text-muted mt-1">30 days FREE trial included</p>
+                      <p className="text-xs text-muted mt-1">
+                        {hasUsedTrial ? 'Free trial already used for this Business Number' : '30 days FREE trial included'}
+                      </p>
                     </div>
                   </div>
                 </motion.div>

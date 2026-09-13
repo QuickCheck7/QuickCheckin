@@ -25,7 +25,7 @@ import {
 export default function TablesPage() {
   const { restaurantData } = useAuthStore();
   const { t } = useTranslation();
-  const restaurantId = restaurantData?.id;
+  const restaurantId = restaurantData?.id || restaurantData?._id;
 
   const [tables, setTables] = useState<Table[]>([]);
   const [loading, setLoading] = useState(true);

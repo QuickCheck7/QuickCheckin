@@ -10,6 +10,11 @@ import { useTranslation } from '@/lib/i18n';
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || '');
 
+const getAuthToken = () => {
+  if (typeof window === 'undefined') return '';
+  return localStorage.getItem('sessionToken') || localStorage.getItem('token') || localStorage.getItem('preftech_token') || '';
+};
+
 interface SubscriptionData {
   subscription: {
     plan: string;
@@ -68,7 +73,7 @@ function PaymentMethodUpdate({ restaurantId, onSuccess }: { restaurantId: string
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('sessionToken')}`
+          'Authorization': `Bearer ${getAuthToken()}`
         },
         body: JSON.stringify({ paymentMethodId: paymentMethod.id })
       });
@@ -140,7 +145,7 @@ export default function SubscriptionPage() {
         `${process.env.NEXT_PUBLIC_API_URL}/api/restaurant/${restaurantId}/subscription`,
         {
           headers: {
-            'Authorization': `Bearer ${localStorage.getItem('sessionToken')}`
+            'Authorization': `Bearer ${getAuthToken()}`
           }
         }
       );
@@ -174,7 +179,7 @@ export default function SubscriptionPage() {
         {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${localStorage.getItem('sessionToken')}`
+            'Authorization': `Bearer ${getAuthToken()}`
           }
         }
       );
@@ -203,7 +208,7 @@ export default function SubscriptionPage() {
         {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${localStorage.getItem('sessionToken')}`
+            'Authorization': `Bearer ${getAuthToken()}`
           }
         }
       );
@@ -228,7 +233,7 @@ export default function SubscriptionPage() {
         {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${localStorage.getItem('sessionToken')}`
+            'Authorization': `Bearer ${getAuthToken()}`
           }
         }
       );
@@ -254,7 +259,7 @@ export default function SubscriptionPage() {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('sessionToken')}`
+            'Authorization': `Bearer ${getAuthToken()}`
           },
           body: JSON.stringify({ seatCapacity })
         }

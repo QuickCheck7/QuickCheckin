@@ -51,7 +51,7 @@ const requestLoginOTP = async (req, res) => {
     const smsResult = await sendSMS(formattedPhone, message);
 
     if (!smsResult.success) {
-      return res.status(500).json({ message: 'Failed to send OTP. Please try again.', error: error.message || 'Unknown error' });
+      return res.status(500).json({ message: 'Failed to send OTP. Please try again.', error: smsResult.error || 'Failed to send SMS' });
     }
 
     res.json({ message: 'OTP sent successfully to your phone number' });
@@ -387,7 +387,7 @@ const signup = async (req, res) => {
     });
 
     if (!customerResult.success) {
-      return res.status(500).json({ message: 'Payment processing error. Please try again.', error: error.message || 'Unknown error' });
+      return res.status(500).json({ message: 'Payment processing error. Please try again.', error: customerResult.error || 'Unknown error' });
     }
 
     const { customer } = customerResult;

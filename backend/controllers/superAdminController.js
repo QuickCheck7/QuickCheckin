@@ -123,7 +123,7 @@ const addRestaurant = async (req, res) => {
       try {
         const adminPhone = process.env.SUPER_ADMIN_PHONE || '+16472216677';
         const planPrice = plan === 'large' ? 499 : 299;
-        const adminMsg = `QuickCheck - New Restaurant Added\nRestaurant: ${name}\nPlan: ${planPrice}/month\nAdded via Super Admin.`;
+        const adminMsg = `QuickCheck - New Restaurant Added\nRestaurant: ${name}\nPlan: $${planPrice}/month\nAdded via Super Admin.`;
         await sendSMS(adminPhone, adminMsg);
       } catch (adminSmsErr) {
         console.error('Failed to notify Super Admin:', adminSmsErr);
@@ -234,7 +234,7 @@ const requestPasswordResetOTP = async (req, res) => {
     const smsSent = await sendSMS(formattedPhone, message);
 
     if (!smsSent) {
-      return res.status(500).json({ message: 'Failed to send OTP. Please try again.', error: error.message || 'Unknown error' });
+      return res.status(500).json({ message: 'Failed to send OTP. Please try again.', error: 'Failed to send SMS' });
     }
 
     res.json({
@@ -307,7 +307,7 @@ const approveTrial = async (req, res) => {
     });
 
     if (!subscriptionResult.success) {
-      return res.status(500).json({ message: 'Failed to create subscription in Stripe.', error: error.message || 'Unknown error' });
+      return res.status(500).json({ message: 'Failed to create subscription in Stripe.', error: subscriptionResult.error || 'Unknown error' });
     }
 
     const { subscription } = subscriptionResult;
@@ -358,7 +358,7 @@ const declineTrial = async (req, res) => {
     });
 
     if (!subscriptionResult.success) {
-      return res.status(500).json({ message: 'Failed to create subscription in Stripe.', error: error.message || 'Unknown error' });
+      return res.status(500).json({ message: 'Failed to create subscription in Stripe.', error: subscriptionResult.error || 'Unknown error' });
     }
 
     const { subscription } = subscriptionResult;

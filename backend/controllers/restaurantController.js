@@ -48,7 +48,7 @@ const requestLoginOTP = async (req, res) => {
     const smsSent = await sendSMS(formattedPhone, message);
 
     if (!smsSent.success) {
-      return res.status(500).json({ message: 'Failed to send OTP. Please try again.', error: error.message || 'Unknown error' });
+      return res.status(500).json({ message: 'Failed to send OTP. Please try again.', error: smsSent.error || 'Failed to send SMS' });
     }
 
     res.json({ message: 'OTP sent successfully to your phone number' });

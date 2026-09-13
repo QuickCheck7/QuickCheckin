@@ -231,23 +231,26 @@ export default function RestaurantsPage() {
     setCreating(true);
     setErrorMsg(null);
     try {
-      const created = await api<CreatedRestaurant>('/api/super-admin/restaurants/', {
+      const res: any = await api<any>('/api/super-admin/restaurants/', {
         method: 'POST',
         body: JSON.stringify(newRestaurant),
       });
 
+      const r = res.restaurant || res;
+
       // optimistic merge
       setRestaurants((prev) => [
         {
-          id: created._id,
-          name: created.name,
-          city: created.city,
-          email: created.email,
-          phone: created.phone,
-          businessNumber: created.businessNumber,
-          isActive: !!created.isActive,
-          subscriptionStatus: created.subscriptionStatus || 'legacy-free',
-          createdAt: created.createdAt,
+          id: r._id || r.id || '',
+          name: r.name,
+          city: r.city,
+          email: r.email,
+          phone: r.phone,
+          businessNumber: r.businessNumber || newRestaurant.businessNumber,
+          isActive: r.isActive !== undefined ? !!r.isActive : true,
+          subscriptionStatus: r.subscriptionStatus || (newRestaurant.subscriptionPlan === 'legacy-free' ? 'legacy-free' : 'active'),
+          subscriptionPlan: r.subscriptionPlan || newRestaurant.subscriptionPlan,
+          createdAt: r.createdAt || new Date().toISOString(),
         },
         ...prev,
       ]);
@@ -654,18 +657,18 @@ export default function RestaurantsPage() {
                         <span>{r.name}</span>
                         {/* Plan Badge */}
                         {r.subscriptionStatus === 'active' && (
-                          <Badge variant="outline" className="border-emerald-500 text-emerald-600 bg-emerald-50">
-                            Paid
+                          <Badge variant="outline" className="border-emerald-500 text-emerald-600 bg-emerald-50 capitalize">
+                            Paid ({r.subscriptionPlan || 'active'})
                           </Badge>
                         )}
                         {r.subscriptionStatus === 'trialing' && (
-                          <Badge variant="outline" className="border-blue-500 text-blue-600 bg-blue-50">
-                            Trial
+                          <Badge variant="outline" className="border-blue-500 text-blue-600 bg-blue-50 capitalize">
+                            Trial ({r.subscriptionPlan || 'small'})
                           </Badge>
                         )}
                         {r.subscriptionStatus === 'legacy-free' && (
                           <Badge variant="outline" className="border-amber-500 text-amber-600 bg-amber-50">
-                            Legacy
+                            Legacy Free
                           </Badge>
                         )}
                         {r.subscriptionStatus === 'pending_approval' && (

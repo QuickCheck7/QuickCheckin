@@ -15,7 +15,7 @@ import { formatDistanceToNow } from 'date-fns';
 export default function MessagesPage() {
   const { restaurantData } = useAuthStore();
   const { t } = useTranslation();
-  const restaurantId = restaurantData?.id;
+  const restaurantId = restaurantData?.id || restaurantData?._id;
 
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);

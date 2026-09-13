@@ -98,7 +98,7 @@ const upgradeSubscription = async (req, res) => {
     });
 
     if (!result.success) {
-      return res.status(500).json({ message: 'Failed to upgrade subscription.', error: error.message || 'Unknown error' });
+      return res.status(500).json({ message: 'Failed to upgrade subscription.', error: result.error || 'Unknown error' });
     }
 
     // Update restaurant
@@ -235,7 +235,7 @@ const cancelSubscription = async (req, res) => {
     const result = await cancelStripeSubscription(restaurant.stripeSubscriptionId, immediate);
 
     if (!result.success) {
-      return res.status(500).json({ message: 'Failed to cancel subscription.', error: error.message || 'Unknown error' });
+      return res.status(500).json({ message: 'Failed to cancel subscription.', error: result.error || 'Unknown error' });
     }
 
     // Update restaurant
@@ -350,7 +350,7 @@ const updateSeatCapacity = async (req, res) => {
         });
 
         if (!result.success) {
-          return res.status(500).json({ message: 'Failed to upgrade plan automatically.', error: error.message || 'Unknown error' });
+          return res.status(500).json({ message: 'Failed to upgrade plan automatically.', error: result.error || 'Unknown error' });
         }
 
         restaurant.subscriptionPlan = 'large';

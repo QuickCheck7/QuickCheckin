@@ -23,7 +23,7 @@ interface TableConfig {
 export default function SettingsPage() {
   const { t } = useTranslation();
   const { restaurantData } = useAuthStore();
-  const restaurantId = restaurantData?.id;
+  const restaurantId = restaurantData?.id || restaurantData?._id;
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);

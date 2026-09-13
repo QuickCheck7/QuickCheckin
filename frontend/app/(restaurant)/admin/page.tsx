@@ -34,7 +34,7 @@ export default function AdminDashboard() {
   
 
 
-  const restaurantId = restaurantData?.id;
+  const restaurantId = restaurantData?.id || restaurantData?._id;
 
   // Custom party popup state
   const [showCustomPartyPopup, setShowCustomPartyPopup] = useState(false);
