@@ -218,15 +218,18 @@ const cancelTimers = (bookingId) => {
  */
 const formatPhoneNumber = (phone) => {
   if (!phone) return '';
-  const cleaned = phone.replace(/\D/g, '');
-  if (cleaned.startsWith('1') && cleaned.length === 11) {
+  const raw = String(phone).trim();
+  const cleaned = raw.replace(/\D/g, '');
+  if (!cleaned) return '';
+
+  if (raw.startsWith('+')) {
     return `+${cleaned}`;
   }
   if (cleaned.length === 10) {
     return `+1${cleaned}`;
   }
-  if (phone.startsWith('+')) {
-    return phone;
+  if (cleaned.startsWith('1') && cleaned.length === 11) {
+    return `+${cleaned}`;
   }
   return `+${cleaned}`;
 };

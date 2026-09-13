@@ -11,24 +11,32 @@ const generateRandomString = (length = 10) => {
 
 const formatPhoneNumber = (phone) => {
   if (!phone) return '';
-  // Remove all non-digit characters
-  const cleaned = phone.replace(/\D/g, '');
+  const raw = String(phone).trim();
+  const cleaned = raw.replace(/\D/g, '');
   if (!cleaned) return '';
   
-  // Check if the number has a country code, if not add +1 (US/CA)
-  if (cleaned.length === 10) {
-    return `+1${cleaned}`;
-  } else if (cleaned.length === 11 && cleaned.startsWith('1')) {
-    return `+${cleaned}`;
-  } else {
+  // If explicitly prefixed with +, preserve all international digits in standard E.164
+  if (raw.startsWith('+')) {
     return `+${cleaned}`;
   }
+  
+  // 10 digits without country prefix defaults to North America (+1)
+  if (cleaned.length === 10) {
+    return `+1${cleaned}`;
+  }
+  
+  // 11 digits starting with 1 is North America with country code
+  if (cleaned.length === 11 && cleaned.startsWith('1')) {
+    return `+${cleaned}`;
+  }
+  
+  // Any other international length (7-15 digits)
+  return `+${cleaned}`;
 };
 
 /**
  * Flexible restaurant lookup by phone number.
- * Matches across all formatting variations (spaces, dashes, parentheses, country codes)
- * and automatically heals/normalizes stored records in the database.
+ * Matches across all countries and formatting variations (spaces, dashes, parentheses, country codes).
  */
 const findRestaurantByPhone = async (phone) => {
   if (!phone) return null;
@@ -50,11 +58,6 @@ const findRestaurantByPhone = async (phone) => {
 
   let restaurant = await Restaurant.findOne({ phone: { $in: directMatches } });
   if (restaurant) {
-    // If phone in DB was unnormalized, auto-heal to E.164
-    if (restaurant.phone !== normalized && normalized) {
-      restaurant.phone = normalized;
-      await restaurant.save().catch(err => console.warn('[findRestaurantByPhone] Auto-heal error:', err.message));
-    }
     return restaurant;
   }
 
@@ -63,12 +66,7 @@ const findRestaurantByPhone = async (phone) => {
   restaurant = await Restaurant.findOne({
     phone: new RegExp(`^\\+?[\\s\\-\\(\\)\\.]*${digitPattern}[\\s\\-\\(\\)\\.]*$`, 'i')
   });
-
   if (restaurant) {
-    if (restaurant.phone !== normalized && normalized) {
-      restaurant.phone = normalized;
-      await restaurant.save().catch(err => console.warn('[findRestaurantByPhone] Auto-heal error:', err.message));
-    }
     return restaurant;
   }
 
@@ -78,30 +76,35 @@ const findRestaurantByPhone = async (phone) => {
     restaurant = await Restaurant.findOne({
       phone: new RegExp(`^\\+?[\\s\\-\\(\\)\\.]*${naPattern}[\\s\\-\\(\\)\\.]*$`, 'i')
     });
+    if (restaurant) return restaurant;
   } else if (digits.length === 11 && digits.startsWith('1')) {
     const tenDigits = digits.substring(1);
     const tenPattern = tenDigits.split('').join('[\\s\\-\\(\\)\\.]*');
     restaurant = await Restaurant.findOne({
       phone: new RegExp(`^\\+?[\\s\\-\\(\\)\\.]*${tenPattern}[\\s\\-\\(\\)\\.]*$`, 'i')
     });
+    if (restaurant) return restaurant;
   }
 
-  // 4. Universal last-10-digits fallback (e.g. user typed 10 digits or had +1 prefix while registered as +91)
-  if (!restaurant && digits.length >= 10) {
-    const last10 = digits.slice(-10);
-    const last10Pattern = last10.split('').join('[\\s\\-\\(\\)\\.]*');
+  // 4. Universal suffix fallback for ANY country (supports 7 to 15 digits)
+  // Matches any stored restaurant whose phone ends with these digits
+  if (digits.length >= 7) {
+    const suffixPattern = digits.split('').join('[\\s\\-\\(\\)\\.]*');
     restaurant = await Restaurant.findOne({
-      phone: new RegExp(`${last10Pattern}$`, 'i')
+      phone: new RegExp(`${suffixPattern}$`, 'i')
     });
-  }
+    if (restaurant) return restaurant;
 
-  if (restaurant && restaurant.phone !== normalized && normalized) {
-    const storedDigits = (restaurant.phone || '').replace(/\D/g, '');
-    const normDigits = (normalized || '').replace(/\D/g, '');
-    // Only auto-heal if country codes align, preserving international prefixes
-    if (storedDigits.startsWith('1') === normDigits.startsWith('1') && storedDigits.length === normDigits.length) {
-      restaurant.phone = normalized;
-      await restaurant.save().catch(err => console.warn('[findRestaurantByPhone] Auto-heal error:', err.message));
+    // If input had a 1-3 digit country code prefix (e.g. +1, +44, +91), also try matching without leading country code
+    for (let prefixLen = 1; prefixLen <= 3; prefixLen++) {
+      if (digits.length - prefixLen >= 7) {
+        const subDigits = digits.substring(prefixLen);
+        const subPattern = subDigits.split('').join('[\\s\\-\\(\\)\\.]*');
+        restaurant = await Restaurant.findOne({
+          phone: new RegExp(`${subPattern}$`, 'i')
+        });
+        if (restaurant) return restaurant;
+      }
     }
   }
 

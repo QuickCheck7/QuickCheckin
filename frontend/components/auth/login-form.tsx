@@ -20,9 +20,12 @@ export function LoginForm() {
 
   const validateForm = () => {
     const e: { phone?: string; role?: string } = {};
-    if (!phoneNumber.trim()) e.phone = t("pleaseEnterPhone");
-    else if (!/^\d{10,}$/.test(phoneNumber))
+    const cleanDigits = phoneNumber.trim().replace(/\D/g, "");
+    if (!phoneNumber.trim()) {
+      e.phone = t("pleaseEnterPhone");
+    } else if (cleanDigits.length < 7 || cleanDigits.length > 15) {
       e.phone = t("pleaseEnterValidPhone");
+    }
     if (!selectedRole) e.role = t("pleaseSelectAccessType");
     setErrors(e);
     return !Object.keys(e).length;
@@ -30,8 +33,14 @@ export function LoginForm() {
 
   const handleContinue = () => {
     if (validateForm()) {
-      const cleanDigits = phoneNumber.trim().replace(/\D/g, "");
-      const fullPhone = `${countryCode}${cleanDigits}`;
+      const trimmed = phoneNumber.trim();
+      let fullPhone = '';
+      if (trimmed.startsWith('+')) {
+        fullPhone = `+${trimmed.replace(/\D/g, "")}`;
+      } else {
+        const cleanDigits = trimmed.replace(/\D/g, "");
+        fullPhone = `${countryCode}${cleanDigits}`;
+      }
       login(fullPhone, selectedRole as UserRole);
     }
   };
@@ -51,28 +60,58 @@ export function LoginForm() {
         <div className="flex gap-2 mt-2">
           {/* Country Code Dropdown */}
           <Select value={countryCode} onValueChange={setCountryCode}>
-            <SelectTrigger className="w-24 h-12 rounded-xl border-border focus-visible:ring-2 focus-visible:ring-primary">
+            <SelectTrigger className="w-28 h-12 rounded-xl border-border focus-visible:ring-2 focus-visible:ring-primary text-sm">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="max-h-60">
               <SelectItem value="+1">
-                <span className="font-mono">+1</span>
+                <span className="font-mono">+1 (US/CA)</span>
               </SelectItem>
               <SelectItem value="+91">
-                <span className="font-mono">+91</span>
+                <span className="font-mono">+91 (IN)</span>
+              </SelectItem>
+              <SelectItem value="+44">
+                <span className="font-mono">+44 (UK)</span>
+              </SelectItem>
+              <SelectItem value="+61">
+                <span className="font-mono">+61 (AU)</span>
+              </SelectItem>
+              <SelectItem value="+49">
+                <span className="font-mono">+49 (DE)</span>
+              </SelectItem>
+              <SelectItem value="+33">
+                <span className="font-mono">+33 (FR)</span>
+              </SelectItem>
+              <SelectItem value="+971">
+                <span className="font-mono">+971 (UAE)</span>
+              </SelectItem>
+              <SelectItem value="+65">
+                <span className="font-mono">+65 (SG)</span>
+              </SelectItem>
+              <SelectItem value="+52">
+                <span className="font-mono">+52 (MX)</span>
+              </SelectItem>
+              <SelectItem value="+34">
+                <span className="font-mono">+34 (ES)</span>
+              </SelectItem>
+              <SelectItem value="+39">
+                <span className="font-mono">+39 (IT)</span>
+              </SelectItem>
+              <SelectItem value="+81">
+                <span className="font-mono">+81 (JP)</span>
               </SelectItem>
             </SelectContent>
           </Select>
 
           {/* Phone Number Input */}
           <div className="relative flex-1">
-            <Phone className="absolute left-3 top-3 h-5 w-5 text-muted" />
+            <Phone className="absolute left-3 top-3.5 h-5 w-5 text-muted" />
             <Input
               id="phone"
               type="tel"
-              placeholder={countryCode === "+1" ? "5551234567" : "9876543210"}
+              placeholder={countryCode === "+1" ? "(555) 000-0000" : countryCode === "+91" ? "98765 43210" : "Phone number"}
               value={phoneNumber}
-              onChange={(e) => setPhoneNumber(e.target.value.replace(/\D/g, ""))}
+              onChange={(e) => setPhoneNumber(e.target.value.replace(/[^\d+\s\-()]/g, ""))}
               className="pl-10 h-12 text-lg rounded-xl border-border focus-visible:ring-2 focus-visible:ring-primary"
             />
           </div>

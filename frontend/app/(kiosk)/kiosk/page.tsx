@@ -119,9 +119,10 @@ function KioskContent() {
       newErrors.name = t('pleaseEnterName');
     }
 
+    const cleanPhone = phone.trim().replace(/\D/g, '');
     if (!phone.trim()) {
       newErrors.phone = t('pleaseEnterPhone');
-    } else if (!/^\d{10,}$/.test(phone)) {
+    } else if (cleanPhone.length < 7 || cleanPhone.length > 15) {
       newErrors.phone = t('pleaseEnterValidPhone');
     }
 
@@ -139,7 +140,8 @@ function KioskContent() {
     setIsSubmitting(true);
 
     try {
-      const fullPhone = `${countryCode}${phone}`;
+      const cleanDigits = phone.trim().replace(/\D/g, '');
+      const fullPhone = phone.trim().startsWith('+') ? `+${cleanDigits}` : `${countryCode}${cleanDigits}`;
 
       const { data, error } = await apiClient.createBooking(
         restaurantId,
@@ -345,15 +347,25 @@ function KioskContent() {
                         <select
                           value={countryCode}
                           onChange={(e) => setCountryCode(e.target.value)}
-                          className="h-14 px-3 rounded-md border-border border bg-panel text-lg font-mono"
+                          className="h-14 px-3 rounded-md border-border border bg-panel text-base font-mono focus:outline-none focus:ring-2 focus:ring-primary"
                         >
-                          <option value="+1">+1</option>
-                          <option value="+91">+91</option>
+                          <option value="+1">+1 (US/CA)</option>
+                          <option value="+91">+91 (IN)</option>
+                          <option value="+44">+44 (UK)</option>
+                          <option value="+61">+61 (AU)</option>
+                          <option value="+49">+49 (DE)</option>
+                          <option value="+33">+33 (FR)</option>
+                          <option value="+971">+971 (UAE)</option>
+                          <option value="+65">+65 (SG)</option>
+                          <option value="+52">+52 (MX)</option>
+                          <option value="+34">+34 (ES)</option>
+                          <option value="+39">+39 (IT)</option>
+                          <option value="+81">+81 (JP)</option>
                         </select>
                         <Input
                           value={phone}
-                          onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
-                          placeholder="5551234567"
+                          onChange={(e) => setPhone(e.target.value.replace(/[^\d+\s\-()]/g, ''))}
+                          placeholder={countryCode === '+1' ? '(555) 000-0000' : countryCode === '+91' ? '98765 43210' : 'Phone number'}
                           className="flex-1 h-14 text-lg border-border focus-visible:ring-2 focus-visible:ring-primary"
                         />
                       </div>
@@ -462,15 +474,25 @@ function KioskContent() {
                         <select
                           value={countryCode}
                           onChange={(e) => setCountryCode(e.target.value)}
-                          className="h-14 px-3 rounded-md border-border border bg-panel text-lg font-mono focus:outline-none focus:ring-2 focus:ring-primary"
+                          className="h-14 px-3 rounded-md border-border border bg-panel text-base font-mono focus:outline-none focus:ring-2 focus:ring-primary"
                         >
-                          <option value="+1">+1</option>
-                          <option value="+91">+91</option>
+                          <option value="+1">+1 (US/CA)</option>
+                          <option value="+91">+91 (IN)</option>
+                          <option value="+44">+44 (UK)</option>
+                          <option value="+61">+61 (AU)</option>
+                          <option value="+49">+49 (DE)</option>
+                          <option value="+33">+33 (FR)</option>
+                          <option value="+971">+971 (UAE)</option>
+                          <option value="+65">+65 (SG)</option>
+                          <option value="+52">+52 (MX)</option>
+                          <option value="+34">+34 (ES)</option>
+                          <option value="+39">+39 (IT)</option>
+                          <option value="+81">+81 (JP)</option>
                         </select>
                         <Input
                           value={phone}
-                          onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
-                          placeholder="5551234567"
+                          onChange={(e) => setPhone(e.target.value.replace(/[^\d+\s\-()]/g, ''))}
+                          placeholder={countryCode === '+1' ? '(555) 000-0000' : countryCode === '+91' ? '98765 43210' : 'Phone number'}
                           className="flex-1 h-14 text-lg border-border focus-visible:ring-2 focus-visible:ring-primary"
                         />
                       </div>

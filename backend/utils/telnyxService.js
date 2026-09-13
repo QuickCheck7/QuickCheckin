@@ -12,18 +12,27 @@ const httpsAgent = new https.Agent({
 // Format phone number for Telnyx (E.164)
 const formatPhoneNumber = (phone) => {
   if (!phone || typeof phone !== 'string') return '';
-  const cleaned = phone.replace(/\D/g, '');
+  const raw = phone.trim();
+  const cleaned = raw.replace(/\D/g, '');
   if (!cleaned) return '';
 
-  if (cleaned.length === 10) {
-    return `+1${cleaned}`; // US/Canada numbers
-  } else if (cleaned.length === 11 && cleaned.startsWith('1')) {
-    return `+${cleaned}`;
-  } else if (phone.startsWith('+')) {
-    return phone;
-  } else {
+  // If already prefixed with +, preserve all international digits in standard E.164
+  if (raw.startsWith('+')) {
     return `+${cleaned}`;
   }
+
+  // 10 digits without country prefix defaults to North America (+1)
+  if (cleaned.length === 10) {
+    return `+1${cleaned}`;
+  }
+
+  // 11 digits starting with 1 is North America with country code
+  if (cleaned.length === 11 && cleaned.startsWith('1')) {
+    return `+${cleaned}`;
+  }
+
+  // Any other international length
+  return `+${cleaned}`;
 };
 
 const TELNYX_FROM = (process.env.TELNYX_PHONE_NUMBER || '').replace(/\D/g, ''); // digits only for sanity
