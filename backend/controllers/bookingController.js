@@ -518,6 +518,7 @@ const handleCustomerResponse = async (req, res) => {
         const statusMap = {
           'message.delivered': 'delivered',
           'message.sent': 'sent',
+          'message.finalized': 'sent',
           'message.failed': 'failed',
           'message.delivery_failed': 'failed',
           'message.undelivered': 'failed'
@@ -537,10 +538,14 @@ const handleCustomerResponse = async (req, res) => {
     }
 
     const rawFrom = payload.from?.phone_number || payload.from;
-    const body = payload.text;
+    const body = payload.text || (payload.media?.length ? '[Image attachment]' : '');
     
-    if (!rawFrom || !body) {
-      return res.status(400).json({ message: 'Phone number and message body are required.' });
+    if (!rawFrom) {
+      return res.status(200).json({ message: 'Ignored webhook with no phone number.' });
+    }
+
+    if (!body) {
+      return res.status(200).json({ message: 'Ignored empty message body.' });
     }
 
     // 2. Reject non-phone senders (e.g. alphanumeric "QuickCheck", shortcodes)

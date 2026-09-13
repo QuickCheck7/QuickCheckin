@@ -86,9 +86,23 @@ const findRestaurantByPhone = async (phone) => {
     });
   }
 
+  // 4. Universal last-10-digits fallback (e.g. user typed 10 digits or had +1 prefix while registered as +91)
+  if (!restaurant && digits.length >= 10) {
+    const last10 = digits.slice(-10);
+    const last10Pattern = last10.split('').join('[\\s\\-\\(\\)\\.]*');
+    restaurant = await Restaurant.findOne({
+      phone: new RegExp(`${last10Pattern}$`, 'i')
+    });
+  }
+
   if (restaurant && restaurant.phone !== normalized && normalized) {
-    restaurant.phone = normalized;
-    await restaurant.save().catch(err => console.warn('[findRestaurantByPhone] Auto-heal error:', err.message));
+    const storedDigits = (restaurant.phone || '').replace(/\D/g, '');
+    const normDigits = (normalized || '').replace(/\D/g, '');
+    // Only auto-heal if country codes align, preserving international prefixes
+    if (storedDigits.startsWith('1') === normDigits.startsWith('1') && storedDigits.length === normDigits.length) {
+      restaurant.phone = normalized;
+      await restaurant.save().catch(err => console.warn('[findRestaurantByPhone] Auto-heal error:', err.message));
+    }
   }
 
   return restaurant;

@@ -246,9 +246,9 @@ const requestPasswordResetOTP = async (req, res) => {
     const message = `Your QuickCheck password reset OTP is: ${otp}. It will expire in 10 minutes.`;
 
     const smsSent = await sendSMS(formattedPhone, message);
-
-    if (!smsSent) {
-      return res.status(500).json({ message: 'Failed to send OTP. Please try again.', error: 'Failed to send SMS' });
+ 
+    if (!smsSent.success) {
+      return res.status(500).json({ message: 'Failed to send OTP. Please try again.', error: smsSent.error || 'Failed to send SMS' });
     }
 
     res.json({

@@ -19,5 +19,5 @@ export function formatWaitTime(minutes: number, t?: any): string {
     return `~${hours} ${hrString}`;
   }
   
-  return `~${hours} ${hrString} ${remainingMins} ${t ? t('min') : 'min'}`;
+  return `~${hours}h ${remainingMins}m`;
 }

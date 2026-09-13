@@ -13,11 +13,18 @@ export function OtpForm() {
   const { t } = useTranslation();
   const [otp, setOtp] = useState("");
   const [error, setError] = useState("");
-  const { phoneNumber, userRole, verifyOtp, logout, isLoading } = useAuthStore();
+  const [resendCooldown, setResendCooldown] = useState(0);
+  const { phoneNumber, userRole, verifyOtp, logout, isLoading, login } = useAuthStore();
 
   useEffect(() => {
     document.getElementById("otp-input")?.focus();
   }, []);
+
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const timer = setInterval(() => setResendCooldown((c) => c - 1), 1000);
+    return () => clearInterval(timer);
+  }, [resendCooldown]);
 
   const handleVerify = async (e?: React.FormEvent) => {
     e?.preventDefault();
@@ -33,9 +40,11 @@ export function OtpForm() {
   };
 
   const handleResendOTP = async () => {
-    // TODO: Implement resend OTP logic
+    if (resendCooldown > 0 || isLoading || !phoneNumber || !userRole) return;
     setOtp("");
     setError("");
+    await login(phoneNumber, userRole);
+    setResendCooldown(45);
   };
 
   return (
@@ -110,10 +119,10 @@ export function OtpForm() {
         </p>
         <button
           onClick={handleResendOTP}
-          disabled={isLoading}
+          disabled={isLoading || resendCooldown > 0}
           className="mt-2 text-primary hover:underline disabled:opacity-50"
         >
-          {t('didntReceiveCode')}
+          {resendCooldown > 0 ? `Resend OTP in ${resendCooldown}s` : t('didntReceiveCode')}
         </button>
       </div>
     </motion.div>

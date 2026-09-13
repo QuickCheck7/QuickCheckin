@@ -214,7 +214,7 @@ function KioskContent() {
         </div>
       </nav>
 
-      <div className="max-w-xl mx-auto xl:max-w-6xl p-4 sm:p-6 pt-6 sm:pt-10">
+      <div className="max-w-2xl mx-auto xl:max-w-6xl p-4 sm:p-6 pt-6 sm:pt-10">
         {/* Welcome Text */}
         <div className="text-center mb-6 sm:mb-8">
           <p className="text-xl sm:text-2xl text-muted font-medium">
@@ -226,7 +226,7 @@ function KioskContent() {
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-8 items-start">
           {/* Main Flow */}
           <div className="w-full xl:col-span-2">
-            <Card className="p-5 sm:p-8 bg-panel border border-border shadow-soft rounded-2xl">
+            <Card className="p-6 sm:p-10 bg-panel border border-border shadow-soft rounded-2xl">
               {step === 'party-size' && (
                 <div>
                   <CardHeader className="text-center p-0 mb-6 sm:mb-8">
@@ -254,32 +254,47 @@ function KioskContent() {
                       </div>
                     ) : (
                       <>
-                        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3 sm:gap-4 mb-6">
-                          {allowedPartySizes.filter(size => waitTimes[size] !== undefined).map((size) => (
-                            <Button
-                              key={size}
-                              size="lg"
-                              variant={partySize === size ? 'default' : 'outline'}
-                              className={`h-20 sm:h-24 flex flex-col items-center justify-center gap-1 transition-all ${partySize === size
-                                  ? 'bg-primary hover:bg-primary-600 text-white shadow-md'
-                                  : 'border-ink/15 text-ink hover:bg-off'
-                                }`}
-                              onClick={() => handlePartySizeSelect(size)}
-                            >
-                              <span className="text-2xl sm:text-3xl font-bold">{size}</span>
-                              <span className={`text-xs flex items-center gap-1 ${partySize === size ? 'text-white/80' : 'text-muted'
-                                }`}>
-                                <Clock className="h-3 w-3" />
-                                {formatWaitTime(waitTimes[size] || 5, t)}
-                              </span>
-                            </Button>
-                          ))}
-                        </div>
+                        {(() => {
+                          const visibleSizes = allowedPartySizes.filter(size => waitTimes[size] !== undefined);
+                          const count = visibleSizes.length;
+                          const gridClass = 
+                            count <= 2 ? 'grid-cols-2' :
+                            count === 3 ? 'grid-cols-3' :
+                            count === 4 ? 'grid-cols-2 sm:grid-cols-4' :
+                            count === 5 ? 'grid-cols-3 sm:grid-cols-5' :
+                            count === 6 ? 'grid-cols-3' :
+                            count <= 8 ? 'grid-cols-2 sm:grid-cols-4' :
+                            'grid-cols-3 sm:grid-cols-4 md:grid-cols-5';
+
+                          return (
+                            <div className={`grid ${gridClass} gap-3 sm:gap-4 mb-6`}>
+                              {visibleSizes.map((size) => (
+                                <Button
+                                  key={size}
+                                  variant={partySize === size ? 'default' : 'outline'}
+                                  className={`h-24 px-2 py-3 flex flex-col items-center justify-center gap-1.5 rounded-xl transition-all ${
+                                    partySize === size
+                                      ? 'bg-primary hover:bg-primary-600 text-white shadow-md ring-2 ring-primary/30'
+                                      : 'border-ink/15 text-ink hover:bg-off hover:border-primary/40'
+                                  }`}
+                                  onClick={() => handlePartySizeSelect(size)}
+                                >
+                                  <span className="text-3xl font-bold tracking-tight">{size}</span>
+                                  <span className={`text-xs font-medium flex items-center justify-center gap-1 max-w-full text-center px-1 truncate ${
+                                    partySize === size ? 'text-white/90' : 'text-muted'
+                                  }`}>
+                                    <Clock className="h-3.5 w-3.5 shrink-0" />
+                                    <span className="truncate">{formatWaitTime(waitTimes[size] || 5, t)}</span>
+                                  </span>
+                                </Button>
+                              ))}
+                            </div>
+                          );
+                        })()}
                         {/* Custom Option */}
                         <Button
-                          size="lg"
                           variant="outline"
-                          className="w-full h-16 text-lg font-medium border-2 border-dashed border-primary/50 text-primary hover:bg-primary/5"
+                          className="w-full h-14 sm:h-16 text-base sm:text-lg font-medium border-2 border-dashed border-primary/50 text-primary hover:bg-primary/5 rounded-xl transition-colors"
                           onClick={handleCustomSelect}
                         >
                           <Users className="h-5 w-5 mr-2" />

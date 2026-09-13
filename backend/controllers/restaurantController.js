@@ -38,27 +38,27 @@ const requestLoginOTP = async (req, res) => {
     const otp = generateOTP();
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
-    // Store OTP in session
+    // Store OTP in session against registered restaurant phone
+    const destinationPhone = formatPhoneNumber(restaurant.phone) || formatPhoneNumber(normalizedPhone || phone);
     const session = new Session({
       restaurantId: restaurant._id,
-      phone: normalizedPhone || phone,
+      phone: destinationPhone,
       role,
       otp,
       expiresAt
     });
     await session.save();
 
-    // Send OTP via SMS
-    const formattedPhone = formatPhoneNumber(normalizedPhone || phone);
+    // Send OTP via SMS to registered phone
     const message = `Your QuickCheck login OTP is: ${otp}. Valid for 10 minutes.`;
     
-    const smsSent = await sendSMS(formattedPhone, message);
+    const smsSent = await sendSMS(destinationPhone, message);
 
     if (!smsSent.success) {
       return res.status(500).json({ message: 'Failed to send OTP. Please try again.', error: smsSent.error || 'Failed to send SMS' });
     }
 
-    res.json({ message: 'OTP sent successfully to your phone number' });
+    res.json({ message: 'OTP sent successfully to your registered phone number' });
   } catch (error) {
     console.error('Request login OTP error:', error);
     res.status(500).json({ message: 'Server error sending OTP.', error: error.message || 'Unknown error' });
@@ -86,10 +86,17 @@ const verifyLoginOTP = async (req, res) => {
       return res.status(404).json({ message: 'Restaurant not found.' });
     }
 
-    // Verify OTP
+    // Verify OTP matching either registered phone or input phone
+    const phoneCandidates = [
+      restaurant.phone,
+      formatPhoneNumber(restaurant.phone),
+      normalizedPhone,
+      phone
+    ].filter(Boolean);
+
     const session = await Session.findOne({
       restaurantId: restaurant._id,
-      phone: { $in: [normalizedPhone, phone] },
+      phone: { $in: phoneCandidates },
       role,
       otp
     });
