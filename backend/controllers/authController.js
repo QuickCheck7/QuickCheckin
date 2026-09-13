@@ -4,6 +4,7 @@ const Session = require('../models/Session');
 const SubscriptionHistory = require('../models/SubscriptionHistory');
 const generateOTP = require('../utils/otpGenerator');
 const { sendSMS, formatPhoneNumber } = require('../utils/telnyxService');
+const { findRestaurantByPhone } = require('../utils/helpers');
 const {
   getPriceForRestaurant,
   createStripeCustomer,
@@ -416,8 +417,8 @@ const validateContact = async (req, res) => {
     const existingEmail = await Restaurant.findOne({ email: email.toLowerCase() });
     if (existingEmail) return res.status(409).json({ message: 'This email is already registered.' });
     
-    // Normalize phone before search to be safe, but just match exact string for now
-    const existingPhone = await Restaurant.findOne({ phone: phone.trim() });
+    // Normalize phone before search to match across all formats
+    const existingPhone = await findRestaurantByPhone(phone);
     if (existingPhone) return res.status(409).json({ message: 'This phone number is already registered.' });
     
     res.json({ available: true });
@@ -489,6 +490,12 @@ const signup = async (req, res) => {
     const existingEmail = await Restaurant.findOne({ email: email.toLowerCase() });
     if (existingEmail) {
       return res.status(409).json({ message: 'This email is already registered.' });
+    }
+
+    // Check phone uniqueness across all formats
+    const existingPhone = await findRestaurantByPhone(phone);
+    if (existingPhone) {
+      return res.status(409).json({ message: 'This phone number is already registered.' });
     }
 
     // Payment Lock: Validate Key Card Country Matches Selected Country

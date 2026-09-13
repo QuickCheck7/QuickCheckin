@@ -4,6 +4,7 @@ const Restaurant = require('../models/Restaurant');
 const Otp = require('../models/Otp');
 const generateOTP = require('../utils/otpGenerator');
 const { sendSMS, formatPhoneNumber } = require('../utils/telnyxService');
+const { findRestaurantByPhone } = require('../utils/helpers');
 
 // Super Admin Login
 const login = async (req, res) => {
@@ -77,11 +78,24 @@ const addRestaurant = async (req, res) => {
     }
 
     // Check if restaurant email already exists
-    const existingRestaurant = await Restaurant.findOne({ email: email.toLowerCase() });
+    const existingRestaurant = await Restaurant.findOne({ email: email.toLowerCase().trim() });
     
     if (existingRestaurant) {
       return res.status(400).json({ 
         message: 'Restaurant with this email already exists.' 
+      });
+    }
+
+    const normalizedPhone = formatPhoneNumber(phone);
+    if (!normalizedPhone) {
+      return res.status(400).json({ message: 'Valid phone number is required.' });
+    }
+
+    // Check if restaurant phone already exists
+    const existingPhone = await findRestaurantByPhone(phone);
+    if (existingPhone) {
+      return res.status(400).json({ 
+        message: 'Restaurant with this phone number already exists.' 
       });
     }
 
@@ -98,7 +112,7 @@ const addRestaurant = async (req, res) => {
       postalCode: (postalCode || '').trim(),
       country: country || 'CA',
       email: email.toLowerCase().trim(),
-      phone: phone.trim(),
+      phone: normalizedPhone,
       businessNumber: cleanBN || '000000000',
       subscriptionPlan: plan,
       subscriptionStatus: status,
@@ -113,8 +127,8 @@ const addRestaurant = async (req, res) => {
     // Send SMS for Small or Large plans
     if (plan === 'small' || plan === 'large') {
       try {
-        const userMsg = `Your QuickCheck account has been created. Please login using your mobile number ${phone}. You will be charged after 24 hours of first login.`;
-        await sendSMS(formatPhoneNumber(phone), userMsg);
+        const userMsg = `Your QuickCheck account has been created. Please login using your mobile number ${normalizedPhone}. You will be charged after 24 hours of first login.`;
+        await sendSMS(normalizedPhone, userMsg);
       } catch (smsErr) {
         console.error('Failed to send welcome SMS to restaurant:', smsErr);
       }

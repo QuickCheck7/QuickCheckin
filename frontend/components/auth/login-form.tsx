@@ -30,7 +30,8 @@ export function LoginForm() {
 
   const handleContinue = () => {
     if (validateForm()) {
-      const fullPhone = `${countryCode}${phoneNumber}`;
+      const cleanDigits = phoneNumber.trim().replace(/\D/g, "");
+      const fullPhone = `${countryCode}${cleanDigits}`;
       login(fullPhone, selectedRole as UserRole);
     }
   };
@@ -69,7 +70,7 @@ export function LoginForm() {
             <Input
               id="phone"
               type="tel"
-              placeholder="5551234567"
+              placeholder={countryCode === "+1" ? "5551234567" : "9876543210"}
               value={phoneNumber}
               onChange={(e) => setPhoneNumber(e.target.value.replace(/\D/g, ""))}
               className="pl-10 h-12 text-lg rounded-xl border-border focus-visible:ring-2 focus-visible:ring-primary"

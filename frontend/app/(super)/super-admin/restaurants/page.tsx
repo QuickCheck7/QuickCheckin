@@ -517,9 +517,10 @@ export default function RestaurantsPage() {
                     id="phone"
                     value={newRestaurant.phone}
                     onChange={(e) => setNewRestaurant((s) => ({ ...s, phone: e.target.value }))}
-                    placeholder="+91 00000 00000"
+                    placeholder={newRestaurant.country === 'US' ? '+1 (555) 000-0000' : '+1 (647) 000-0000'}
                     className="mt-2 border-border focus-visible:ring-2 focus-visible:ring-primary"
                   />
+                  <p className="text-xs text-muted-foreground mt-1">Include country code (e.g. +1 for US/Canada, +91 for India)</p>
                 </div>
               </div>
 

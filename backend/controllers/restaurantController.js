@@ -7,6 +7,7 @@ const jwt = require('jsonwebtoken');
 const generateOTP = require('../utils/otpGenerator');
 const { sendSMS, formatPhoneNumber } = require('../utils/telnyxService');
 const { calculateWaitTime } = require('../utils/waitTimeCalculator');
+const { findRestaurantByPhone } = require('../utils/helpers');
 
 // Restaurant Admin Login - Request OTP
 const requestLoginOTP = async (req, res) => {
@@ -21,10 +22,16 @@ const requestLoginOTP = async (req, res) => {
       return res.status(400).json({ message: 'Invalid role. Must be admin or guest.' });
     }
 
-    // Find restaurant by phone
-    const restaurant = await Restaurant.findOne({ phone });
+    const normalizedPhone = formatPhoneNumber(phone);
+
+    // Find restaurant by phone (with spacing/formatting resilience and auto-heal)
+    const restaurant = await findRestaurantByPhone(phone);
     if (!restaurant) {
       return res.status(404).json({ message: 'Restaurant not found.' });
+    }
+
+    if (!restaurant.isActive) {
+      return res.status(403).json({ message: 'Restaurant account is inactive. Please contact support.' });
     }
 
     // Generate OTP
@@ -34,7 +41,7 @@ const requestLoginOTP = async (req, res) => {
     // Store OTP in session
     const session = new Session({
       restaurantId: restaurant._id,
-      phone,
+      phone: normalizedPhone || phone,
       role,
       otp,
       expiresAt
@@ -42,7 +49,7 @@ const requestLoginOTP = async (req, res) => {
     await session.save();
 
     // Send OTP via SMS
-    const formattedPhone = formatPhoneNumber(phone);
+    const formattedPhone = formatPhoneNumber(normalizedPhone || phone);
     const message = `Your QuickCheck login OTP is: ${otp}. Valid for 10 minutes.`;
     
     const smsSent = await sendSMS(formattedPhone, message);
@@ -71,14 +78,21 @@ const verifyLoginOTP = async (req, res) => {
       return res.status(400).json({ message: 'Invalid role. Must be admin or guest.' });
     }
 
-    // Find restaurant by phone
-    const restaurant = await Restaurant.findOne({ phone });
+    const normalizedPhone = formatPhoneNumber(phone);
+
+    // Find restaurant by phone (with spacing/formatting resilience and auto-heal)
+    const restaurant = await findRestaurantByPhone(phone);
     if (!restaurant) {
       return res.status(404).json({ message: 'Restaurant not found.' });
     }
 
     // Verify OTP
-    const session = await Session.findOne({ restaurantId: restaurant._id, phone, role, otp });
+    const session = await Session.findOne({
+      restaurantId: restaurant._id,
+      phone: { $in: [normalizedPhone, phone] },
+      role,
+      otp
+    });
     if (!session) {
       return res.status(400).json({ message: 'Invalid OTP.' });
     }
