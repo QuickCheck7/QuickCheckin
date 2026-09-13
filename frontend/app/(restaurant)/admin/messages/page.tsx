@@ -199,15 +199,15 @@ export default function MessagesPage() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-4 lg:gap-6">
           {/* Conversation List */}
-          <div className="lg:col-span-1">
-            <Card className="bg-panel border border-border shadow-soft">
-              <CardHeader>
+          <div className="md:col-span-5 lg:col-span-4">
+            <Card className="h-[550px] lg:h-[620px] flex flex-col bg-panel border border-border shadow-soft">
+              <CardHeader className="pb-3 border-b border-border">
                 <CardTitle className="text-lg">{t('conversations')}</CardTitle>
               </CardHeader>
-              <CardContent className="p-0">
-                <div className="divide-y divide-border max-h-[600px] overflow-y-auto">
+              <CardContent className="p-0 flex-1 overflow-hidden">
+                <div className="divide-y divide-border h-full overflow-y-auto">
                   {filteredConversations.map((conv) => {
                     const lastMessage = conv.lastMessage;
                     const isSelected = selectedPhone === conv.customerPhone;
@@ -215,29 +215,29 @@ export default function MessagesPage() {
                     return (
                       <div
                         key={conv.customerPhone}
-                        className={`p-4 cursor-pointer transition-colors ${
+                        className={`p-3.5 sm:p-4 cursor-pointer transition-colors ${
                           isSelected
                             ? 'bg-primary/5 border-l-4 border-l-primary'
                             : 'hover:bg-off'
                         }`}
                         onClick={() => setSelectedPhone(conv.customerPhone)}
                       >
-                        <div className="flex items-center justify-between mb-2">
-                          <h3 className="font-medium">{conv.customerName || t('unknown')}</h3>
+                        <div className="flex items-center justify-between mb-1.5 gap-2">
+                          <h3 className="font-medium text-sm sm:text-base truncate">{conv.customerName || t('unknown')}</h3>
                           {lastMessage && (
-                            <Badge className={`${getMessageTypeColor(lastMessage.messageType)} border-0 text-[11px] px-2 py-0.5`}>
+                            <Badge className={`${getMessageTypeColor(lastMessage.messageType)} border-0 text-[10px] sm:text-[11px] px-2 py-0.5 shrink-0`}>
                               {getMessageTypeLabel(lastMessage.messageType, lastMessage.direction)}
                             </Badge>
                           )}
                         </div>
-                        <p className="text-sm text-muted truncate mb-1">{lastMessage?.content || ''}</p>
-                        <div className="flex items-center justify-between text-xs text-muted">
+                        <p className="text-xs sm:text-sm text-muted truncate mb-1.5">{lastMessage?.content || ''}</p>
+                        <div className="flex items-center justify-between text-[11px] sm:text-xs text-muted">
                           <span className="flex items-center">
-                            <Phone className="h-3 w-3 mr-1" />
-                            {conv.customerPhone}
+                            <Phone className="h-3 w-3 mr-1 shrink-0" />
+                            <span className="truncate max-w-[120px] sm:max-w-none">{conv.customerPhone}</span>
                           </span>
                           {lastMessage?.createdAt && (
-                            <span>
+                            <span className="shrink-0">
                               {formatDistanceToNow(new Date(lastMessage.createdAt), { addSuffix: true })}
                             </span>
                           )}
@@ -251,14 +251,16 @@ export default function MessagesPage() {
           </div>
 
           {/* Message Thread */}
-          <div className="lg:col-span-2">
-            <Card className="h-[600px] flex flex-col bg-panel border border-border shadow-soft">
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <MessageSquare className="h-5 w-5 mr-2 text-primary" />
-                  {selectedConversation
-                    ? `${t('conversationWith')} ${selectedConversation.customerName || selectedConversation.customerPhone}`
-                    : t('selectConversation')}
+          <div className="md:col-span-7 lg:col-span-8">
+            <Card className="h-[550px] lg:h-[620px] flex flex-col bg-panel border border-border shadow-soft">
+              <CardHeader className="pb-3 border-b border-border">
+                <CardTitle className="flex items-center text-lg">
+                  <MessageSquare className="h-5 w-5 mr-2 text-primary shrink-0" />
+                  <span className="truncate">
+                    {selectedConversation
+                      ? `${t('conversationWith')} ${selectedConversation.customerName || selectedConversation.customerPhone}`
+                      : t('selectConversation')}
+                  </span>
                 </CardTitle>
                 {selectedConversation && (
                   <CardDescription className="text-muted">
@@ -267,7 +269,7 @@ export default function MessagesPage() {
                 )}
               </CardHeader>
 
-              <CardContent className="flex-1 flex flex-col">
+              <CardContent className="flex-1 flex flex-col p-3 sm:p-6 overflow-hidden">
                 {selectedConversation ? (
                   <div className="flex-1 overflow-y-auto space-y-4 pr-1">
                     {selectedConversation.messages.map((message) => (
@@ -276,10 +278,10 @@ export default function MessagesPage() {
                         className={`flex ${message.direction === 'outbound' ? 'justify-end' : 'justify-start'}`}
                       >
                         <div
-                          className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
+                          className={`max-w-[85%] sm:max-w-md px-3.5 sm:px-4 py-2.5 rounded-xl ${
                             message.direction === 'outbound'
-                              ? 'bg-primary text-white'
-                              : 'bg-off ring-1 ring-border text-ink'
+                              ? 'bg-primary text-white rounded-br-sm'
+                              : 'bg-off ring-1 ring-border text-ink rounded-bl-sm'
                           }`}
                         >
                           <p className="text-sm whitespace-pre-line">{message.content}</p>

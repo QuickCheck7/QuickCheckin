@@ -214,26 +214,26 @@ function KioskContent() {
         </div>
       </nav>
 
-      <div className="max-w-5xl mx-auto p-4 pt-8">
+      <div className="max-w-xl mx-auto xl:max-w-6xl p-4 sm:p-6 pt-6 sm:pt-10">
         {/* Welcome Text */}
-        <div className="text-center mb-8">
-          <p className="text-xl text-muted">
+        <div className="text-center mb-6 sm:mb-8">
+          <p className="text-xl sm:text-2xl text-muted font-medium">
             {t('welcomeJoinWaitlist')} <span className="font-semibold text-primary">{restaurantData?.name}</span>
           </p>
         </div>
 
         {/* Main Content */}
-        <div className="grid lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-8 items-start">
           {/* Main Flow */}
-          <div className="lg:col-span-2">
-            <Card className="p-8 bg-panel border border-border shadow-soft">
+          <div className="w-full xl:col-span-2">
+            <Card className="p-5 sm:p-8 bg-panel border border-border shadow-soft rounded-2xl">
               {step === 'party-size' && (
                 <div>
-                  <CardHeader className="text-center p-0 mb-8">
-                    <CardTitle className="text-2xl mb-2 text-ink">
+                  <CardHeader className="text-center p-0 mb-6 sm:mb-8">
+                    <CardTitle className="text-2xl sm:text-3xl mb-2 text-ink">
                       {t('howManyPeople')}
                     </CardTitle>
-                    <p className="text-muted">{t('selectPartySize')}</p>
+                    <p className="text-muted text-base sm:text-lg">{t('selectPartySize')}</p>
                   </CardHeader>
                   <CardContent className="p-0">
                     {loadingSettings ? (
@@ -254,19 +254,19 @@ function KioskContent() {
                       </div>
                     ) : (
                       <>
-                        <div className="grid grid-cols-5 gap-4 mb-6">
+                        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3 sm:gap-4 mb-6">
                           {allowedPartySizes.filter(size => waitTimes[size] !== undefined).map((size) => (
                             <Button
                               key={size}
                               size="lg"
                               variant={partySize === size ? 'default' : 'outline'}
-                              className={`h-24 flex flex-col items-center justify-center gap-1 ${partySize === size
-                                  ? 'bg-primary hover:bg-primary-600 text-white'
+                              className={`h-20 sm:h-24 flex flex-col items-center justify-center gap-1 transition-all ${partySize === size
+                                  ? 'bg-primary hover:bg-primary-600 text-white shadow-md'
                                   : 'border-ink/15 text-ink hover:bg-off'
                                 }`}
                               onClick={() => handlePartySizeSelect(size)}
                             >
-                              <span className="text-2xl font-bold">{size}</span>
+                              <span className="text-2xl sm:text-3xl font-bold">{size}</span>
                               <span className={`text-xs flex items-center gap-1 ${partySize === size ? 'text-white/80' : 'text-muted'
                                 }`}>
                                 <Clock className="h-3 w-3" />
@@ -597,8 +597,8 @@ function KioskContent() {
             </Card>
           </div>
 
-          {/* SMS Preview - Phone Mockup */}
-          <div className="lg:col-span-1">
+          {/* SMS Preview - Phone Mockup (Desktop only) */}
+          <div className="hidden xl:block xl:col-span-1">
             <div className="sticky top-24">
               {/* Phone Frame */}
               <div className="mx-auto max-w-[280px] sm:max-w-[320px]">

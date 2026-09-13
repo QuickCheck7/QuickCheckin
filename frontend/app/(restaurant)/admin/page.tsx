@@ -456,7 +456,7 @@ export default function AdminDashboard() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
         <Card className="bg-panel border border-border shadow-soft">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">{t('totalWaiting') || 'Total Waiting'}</CardTitle>
@@ -547,39 +547,39 @@ export default function AdminDashboard() {
                         stiffness: 100,
                         damping: 15
                       }}
-                      className="flex items-center justify-between p-4 border border-border rounded-lg hover:bg-off bg-panel"
+                      className="flex flex-col sm:flex-row sm:items-center justify-between p-3.5 sm:p-4 border border-border rounded-lg hover:bg-off bg-panel gap-3 sm:gap-4"
                     >
-                      <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-3 sm:gap-4 min-w-0">
                         <div className="flex-shrink-0 w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
                           <span className="text-sm font-semibold text-primary">{index + 1}</span>
                         </div>
-                        <div>
+                        <div className="min-w-0">
                           <div className="flex items-center gap-2">
-                            <h3 className="font-medium">{booking.customerName}</h3>
+                            <h3 className="font-medium truncate">{booking.customerName}</h3>
                             {booking.isCustomParty && (
-                              <Badge className="bg-amber-100 text-amber-800 border-amber-300 text-xs">
+                              <Badge className="bg-amber-100 text-amber-800 border-amber-300 text-xs shrink-0">
                                 {t('customParty')}
                               </Badge>
                             )}
                           </div>
-                          <div className="flex flex-wrap items-center gap-4 text-sm text-muted">
+                          <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-sm text-muted mt-0.5">
                             <span className="flex items-center">
-                              <Users className="h-4 w-4 mr-1" />
+                              <Users className="h-4 w-4 mr-1 shrink-0" />
                               {t('partyOf')} {booking.partySize}
                             </span>
                             <span className="flex items-center">
-                              <Phone className="h-4 w-4 mr-1" />
+                              <Phone className="h-4 w-4 mr-1 shrink-0" />
                               {booking.customerPhone}
                             </span>
                             <span className="flex items-center">
-                              <Clock className="h-4 w-4 mr-1" />
+                              <Clock className="h-4 w-4 mr-1 shrink-0" />
                               {formatDistanceToNow(new Date(booking.checkInTime || booking.createdAt), { addSuffix: true, locale: language === 'fr' ? fr : undefined })}
                             </span>
                           </div>
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-3">
+                      <div className="flex flex-wrap items-center gap-2 sm:gap-3 self-end sm:self-center">
                         <Badge className={`${getStatusColor(booking.status)} rounded-md`}>
                           {getStatusText(booking.status)}
                         </Badge>
@@ -685,16 +685,16 @@ export default function AdminDashboard() {
                 return (
                   <div
                     key={table._id}
-                    className="flex items-center justify-between p-4 border border-orange-500/30 rounded-lg bg-orange-500/5"
+                    className="flex flex-col sm:flex-row sm:items-center justify-between p-3.5 sm:p-4 border border-orange-500/30 rounded-lg bg-orange-500/5 gap-3 sm:gap-4"
                   >
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-3 sm:gap-4 min-w-0">
                       <div className="flex-shrink-0 w-10 h-10 bg-orange-500/10 rounded-full flex items-center justify-center">
                         <TableIcon className="h-5 w-5 text-orange-600" />
                       </div>
-                      <div>
-                        <p className="font-medium">Table {table.tableNumber}</p>
-                        <div className="flex items-center gap-2 text-sm text-muted">
-                          <Users className="h-3 w-3" />
+                      <div className="min-w-0">
+                        <p className="font-medium truncate">Table {table.tableNumber}</p>
+                        <div className="flex flex-wrap items-center gap-2 text-sm text-muted">
+                          <Users className="h-3 w-3 shrink-0" />
                           {tableBooking ? (
                             <span>{tableBooking.customerName} ({tableBooking.partySize})</span>
                           ) : (
@@ -703,7 +703,7 @@ export default function AdminDashboard() {
                           {tableBooking?.seatedAt && (
                             <>
                               <span>•</span>
-                              <Clock className="h-3 w-3" />
+                              <Clock className="h-3 w-3 shrink-0" />
                               <span>{formatDistanceToNow(new Date(tableBooking.seatedAt), { addSuffix: false, locale: language === 'fr' ? fr : undefined })}</span>
                             </>
                           )}
@@ -714,7 +714,7 @@ export default function AdminDashboard() {
                       size="sm"
                       onClick={() => handleUpdateTableStatus(table._id, 'cleaning')}
                       disabled={updatingTableId === table._id}
-                      className="bg-purple-600 hover:bg-purple-700 text-white"
+                      className="bg-purple-600 hover:bg-purple-700 text-white self-end sm:self-center"
                     >
                       {updatingTableId === table._id ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
@@ -733,16 +733,16 @@ export default function AdminDashboard() {
               {tables.filter(t => t.status === 'cleaning').map(table => (
                 <div
                   key={table._id}
-                  className="flex items-center justify-between p-4 border border-purple-500/30 rounded-lg bg-purple-500/5"
+                  className="flex flex-col sm:flex-row sm:items-center justify-between p-3.5 sm:p-4 border border-purple-500/30 rounded-lg bg-purple-500/5 gap-3 sm:gap-4"
                 >
-                  <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-3 sm:gap-4 min-w-0">
                     <div className="flex-shrink-0 w-10 h-10 bg-purple-500/10 rounded-full flex items-center justify-center">
                       <Sparkles className="h-5 w-5 text-purple-600" />
                     </div>
-                    <div>
-                      <p className="font-medium">Table {table.tableNumber}</p>
+                    <div className="min-w-0">
+                      <p className="font-medium truncate">Table {table.tableNumber}</p>
                       <div className="flex items-center gap-2 text-sm text-purple-600">
-                        <Sparkles className="h-3 w-3" />
+                        <Sparkles className="h-3 w-3 shrink-0" />
                         <span>{t('beingCleaned') || 'Being cleaned...'}</span>
                       </div>
                     </div>
@@ -751,7 +751,7 @@ export default function AdminDashboard() {
                     size="sm"
                     onClick={() => handleUpdateTableStatus(table._id, 'available')}
                     disabled={updatingTableId === table._id}
-                    className="bg-success hover:bg-success/90 text-white"
+                    className="bg-success hover:bg-success/90 text-white self-end sm:self-center"
                   >
                     {updatingTableId === table._id ? (
                       <Loader2 className="h-4 w-4 animate-spin" />

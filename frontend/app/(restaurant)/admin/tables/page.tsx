@@ -180,7 +180,7 @@ export default function TablesPage() {
       </div>
 
       {/* Stats Overview */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
         <Card 
           className={`bg-panel border shadow-soft cursor-pointer transition-colors hover:border-success/50 ${filterStatus === 'available' ? 'border-success ring-1 ring-success' : 'border-border'}`}
           onClick={() => toggleFilter('available')}
@@ -287,7 +287,7 @@ export default function TablesPage() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
           {filteredTables.filter(t => t.isActive).map((table) => (
             <Card key={table._id} className="overflow-hidden bg-panel border border-border shadow-soft">
               <CardHeader className="pb-3">

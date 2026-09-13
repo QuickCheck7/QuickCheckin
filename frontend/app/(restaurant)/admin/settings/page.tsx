@@ -350,12 +350,12 @@ export default function SettingsPage() {
       {/* Table Configuration */}
       <Card className="bg-panel border border-border shadow-soft">
         <CardHeader className="sticky top-0 z-20 bg-panel/95 backdrop-blur-sm border-b border-border/50 shadow-sm rounded-t-xl">
-          <CardTitle className="flex items-center justify-between">
+          <CardTitle className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="flex items-center">
               <Restaurant className="h-5 w-5 mr-2 text-primary" />
               {t('tableConfiguration')}
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 self-end sm:self-center">
               <Button 
                 onClick={addTable} 
                 size="sm" 
@@ -451,7 +451,7 @@ export default function SettingsPage() {
                           </span>
                         </div>
                       )}
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                           <Label className="text-ink">{t('tableNumber')}</Label>
                           <Input
