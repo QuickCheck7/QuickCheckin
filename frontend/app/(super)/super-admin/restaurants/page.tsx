@@ -462,14 +462,15 @@ export default function RestaurantsPage() {
               </div>
 
               <div>
-                <Label htmlFor="businessNumber" className="text-ink">Business Number</Label>
+                <Label htmlFor="businessNumber" className="text-ink">Business Number / EIN</Label>
                 <Input
                   id="businessNumber"
                   value={newRestaurant.businessNumber}
                   onChange={(e) => setNewRestaurant((s) => ({ ...s, businessNumber: e.target.value }))}
-                  placeholder="BN-XXXXX"
+                  placeholder="123456789"
                   className="mt-2 border-border focus-visible:ring-2 focus-visible:ring-primary"
                 />
+                <p className="text-xs text-muted-foreground mt-1">9-digit number</p>
               </div>
 
               <Button

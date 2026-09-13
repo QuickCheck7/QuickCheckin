@@ -432,7 +432,7 @@ function SignupForm() {
                         className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent bg-off text-ink ${businessNumberAvailable === false ? 'border-red-500' :
                             businessNumberAvailable === true ? 'border-green-500' : 'border-border'
                           }`}
-                        placeholder={formData.country === 'US' ? '12-3456789' : '123456789RC0001'}
+                        placeholder="123456789"
                       />
                       {verifyingBusinessNumber && (
                         <div className="absolute right-3 top-3.5">
@@ -443,7 +443,7 @@ function SignupForm() {
                         <div className="absolute right-3 top-3.5 text-green-500"><Check size={20} /></div>
                       )}
                     </div>
-                    <p className="text-xs text-muted mt-1">9 digits</p>
+                    <p className="text-xs text-muted mt-1">9-digit number</p>
                     {hasUsedTrial && (
                       <div className="text-sm text-amber-800 mt-2 bg-amber-50 p-3 rounded-xl border border-amber-200">
                         <p className="font-semibold">Notice: Free Trial Already Used</p>
