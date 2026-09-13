@@ -83,11 +83,13 @@ const createBooking = async (req, res) => {
     const waitTime = waitResult.waitTime;
     const estimatedSeatingTime = new Date(Date.now() + waitTime * 60 * 1000);
     
+    const normalizedCustomerPhone = formatPhoneNumber(customerPhone);
+
     // Create booking with language preference from kiosk
     const booking = new Booking({
       restaurantId,
-      customerName,
-      customerPhone,
+      customerName: (customerName || '').trim(),
+      customerPhone: normalizedCustomerPhone || customerPhone.trim(),
       partySize,
       waitTime,
       estimatedSeatingTime,
@@ -470,15 +472,22 @@ const handleCustomerResponse = async (req, res) => {
       return res.status(400).json({ message: 'Phone number and message body are required.' });
     }
     
+    // Flexible lookup matching digits across any spacing or dash variations
+    const fromDigits = from.replace(/\D/g, '');
+    const digitPattern = fromDigits.length >= 10
+      ? fromDigits.slice(-10).split('').join('[\\s\\-\\(\\)\\.]*')
+      : fromDigits.split('').join('[\\s\\-\\(\\)\\.]*');
+    const phoneRegex = new RegExp(`[\\s\\-\\(\\)\\.]*${digitPattern}[\\s\\-\\(\\)\\.]*$`, 'i');
+
     // Find the most recent notified booking from this phone, or fallback to any recent booking
     let booking = await Booking.findOne({
-      customerPhone: { $regex: from.replace('+', ''), $options: 'i' },
+      customerPhone: phoneRegex,
       status: 'notified'
     }).sort({ notificationSentAt: -1 }).populate('restaurantId');
     
     if (!booking) {
       booking = await Booking.findOne({
-        customerPhone: { $regex: from.replace('+', ''), $options: 'i' }
+        customerPhone: phoneRegex
       }).sort({ createdAt: -1 }).populate('restaurantId');
     }
 
