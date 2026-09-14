@@ -92,14 +92,15 @@ export default function TermsOfServicePage() {
             </section>
 
             <section className="mb-10">
-              <h2 className="text-2xl font-semibold text-ink mb-4">6. SMS Communications</h2>
-              <p className="text-ink/80 mb-4">By using the Service:</p>
+              <h2 className="text-2xl font-semibold text-ink mb-4">6. SMS Communications & Terms</h2>
+              <p className="text-ink/80 mb-4">By providing your mobile phone number to the Service:</p>
               <ul className="list-disc pl-6 mb-4 text-ink/80 space-y-2">
-                <li>Restaurants agree to send only waitlist-related messages</li>
-                <li>Restaurants are responsible for obtaining customer consent where required by law</li>
-                <li>Customers joining the waitlist consent to receive SMS notifications</li>
-                <li>SMS usage is included in the subscription</li>
-                <li>Carrier messaging rates may apply</li>
+                <li><strong>Program Description:</strong> QuickCheck provides transactional SMS notifications related to restaurant waitlist status (waitlist check-in confirmation, estimated wait time updates, table ready alerts, follow-up reminders, and table release/cancellation notices).</li>
+                <li><strong>Message Frequency:</strong> Message frequency varies depending on guest visits, typically 2 to 4 messages per waitlist check-in.</li>
+                <li><strong>Message and Data Rates:</strong> Message and data rates may apply depending on your mobile carrier and plan.</li>
+                <li><strong>Opt-Out:</strong> You may opt out of receiving SMS notifications at any time by replying <strong>STOP</strong>, <strong>CANCEL</strong>, or <strong>UNSUBSCRIBE</strong> to any message. You will receive a single confirmation message confirming your unsubscription.</li>
+                <li><strong>Customer Support:</strong> For assistance with SMS notifications, reply <strong>HELP</strong> to any message or contact us at <a href="mailto:info@quickcheckin.ca" className="text-primary hover:underline">info@quickcheckin.ca</a>.</li>
+                <li>Carriers (such as AT&T, T-Mobile, Verizon, Rogers, Bell, Telus) are not liable for delayed or undelivered messages.</li>
               </ul>
             </section>
 

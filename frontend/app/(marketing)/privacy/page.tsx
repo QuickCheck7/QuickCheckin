@@ -71,16 +71,22 @@ export default function PrivacyPolicyPage() {
             </section>
 
             <section className="mb-10">
-              <h2 className="text-2xl font-semibold text-ink mb-4">5. Third-Party Services</h2>
+              <h2 className="text-2xl font-semibold text-ink mb-4">5. Third-Party Services & SMS Privacy</h2>
               <p className="text-ink/80 mb-4">We use trusted third-party providers to operate our service:</p>
               <ul className="list-disc pl-6 mb-4 text-ink/80 space-y-2">
-                <li><strong>Telnyx</strong> – SMS messaging</li>
+                <li><strong>Telnyx</strong> – SMS messaging delivery</li>
                 <li><strong>Stripe</strong> – Payment processing</li>
                 <li><strong>MongoDB Atlas</strong> – Secure cloud database hosting</li>
               </ul>
-              <p className="text-ink/80">
+              <p className="text-ink/80 mb-4">
                 These providers follow industry-standard security practices, including PCI-DSS and SOC 2 compliance where applicable.
               </p>
+              <div className="p-4 bg-primary/5 rounded-xl border border-primary/20">
+                <p className="text-ink/90 font-medium">
+                  <strong>SMS Opt-In & Mobile Information Protection:</strong><br />
+                  No mobile information will be shared with third parties or affiliates for marketing or promotional purposes. All the above categories exclude text messaging originator opt-in data and consent; this information will not be shared with or sold to any third parties.
+                </p>
+              </div>
             </section>
 
             <section className="mb-10">
