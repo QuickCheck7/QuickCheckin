@@ -9,6 +9,8 @@ const connectDB = async () => {
     // Automatically normalize legacy and unformatted customer/restaurant data
     const { runDataMigration } = require('../utils/migrationService');
     runDataMigration().catch((err) => console.error('[DB] Migration error:', err.message));
+
+    return conn;
   } catch (error) {
     console.error('Database connection error:', error.message);
     process.exit(1);

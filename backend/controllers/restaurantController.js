@@ -8,6 +8,7 @@ const generateOTP = require('../utils/otpGenerator');
 const { sendSMS, formatPhoneNumber } = require('../utils/telnyxService');
 const { calculateWaitTime } = require('../utils/waitTimeCalculator');
 const { findRestaurantByPhone } = require('../utils/helpers');
+const { sweepOverdueBookings } = require('../utils/notificationTimers');
 
 // Restaurant Admin Login - Request OTP
 const requestLoginOTP = async (req, res) => {
@@ -324,6 +325,9 @@ const updateTables = async (req, res) => {
 const getDashboardData = async (req, res) => {
   try {
     const { restaurantId } = req.params;
+
+    // Sweep overdue bookings so dashboard numbers are accurate
+    await sweepOverdueBookings(req.app, restaurantId);
 
     const restaurant = await Restaurant.findById(restaurantId);
     if (!restaurant || !restaurant.isActive) {

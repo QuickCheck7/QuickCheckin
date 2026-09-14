@@ -6,8 +6,13 @@ const PartyDuration = require('../models/PartyDuration');
 const { calculateWaitTime, getWaitTimeRange } = require('../utils/waitTimeCalculator');
 const { sendSMS } = require('../utils/telnyxService');
 const { formatPhoneNumber } = require('../utils/helpers');
-const { getSmsTemplate } = require('../utils/smsTemplates');
-const { startNotificationTimers, cancelTimers } = require('../utils/notificationTimers');
+const {
+  startNotificationTimers,
+  cancelTimers,
+  cancelFollowUpTimer,
+  ensureAutoCancelTimer,
+  sweepOverdueBookings
+} = require('../utils/notificationTimers');
 
 // Helper to log SMS to Message model
 const logMessage = async (restaurantId, bookingId, customerPhone, customerName, direction, messageType, content, telnyxMessageId = null) => {
@@ -613,14 +618,16 @@ const handleCustomerResponse = async (req, res) => {
     
     // Accept Y/YES (English) or O/OUI (French) as confirmation
     if (response === 'Y' || response === 'YES' || response === 'O' || response === 'OUI') {
-      // Cancel the follow-up and auto-cancel timers
-      cancelTimers(booking._id.toString());
+      // Cancel ONLY the 7-minute reminder timer since customer already responded.
+      // Keep auto-cancel timer running! Guest must arrive within 20 minutes of table ready notification.
+      cancelFollowUpTimer(booking._id.toString());
+      ensureAutoCancelTimer(booking, req.app);
       
       booking.status = 'confirmed';
       booking.confirmationReceivedAt = new Date();
       await booking.save();
       
-      console.log(`[Booking] Confirmed booking ${booking._id} via SMS reply ${response}.`);
+      console.log(`[Booking] Confirmed booking ${booking._id} via SMS reply ${response}. Auto-cancel timer remains active.`);
 
       if (sseEmitter) {
         sseEmitter.emit('booking', { 
@@ -736,6 +743,9 @@ const getBookings = async (req, res) => {
     const { restaurantId } = req.params;
     const { status, date } = req.query;
     
+    // Sweep overdue bookings before querying so active waitlist is always clean
+    await sweepOverdueBookings(req.app, restaurantId);
+
     const query = { restaurantId };
     
     // Filter by status
@@ -768,6 +778,9 @@ const getDashboardStats = async (req, res) => {
   try {
     const { restaurantId } = req.params;
     
+    // Sweep overdue bookings before calculating counts
+    await sweepOverdueBookings(req.app, restaurantId);
+
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const endOfDay = new Date(today);

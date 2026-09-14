@@ -59,6 +59,13 @@ const bookingSchema = new mongoose.Schema({
   completedAt: {
     type: Date
   },
+  cancelledAt: {
+    type: Date
+  },
+  cancellationReason: {
+    type: String,
+    trim: true
+  },
   // Custom party flag (for large parties that need staff assistance)
   isCustomParty: {
     type: Boolean,

@@ -6,6 +6,7 @@ const compression = require('compression');
 const rateLimit = require('express-rate-limit');
 const connectDB = require('./config/database');
 const sseEmitter = require('./utils/sseEmitter');
+const { initNotificationSweeper } = require('./utils/notificationTimers');
 require('dotenv').config();
 
 const superAdminRoutes = require('./routes/superAdmin');
@@ -18,12 +19,15 @@ const authRoutes = require('./routes/auth');
 
 const app = express();
 
-
-// --- DB ---
-connectDB();
-
 // Register SSE emitter for use in controllers
 app.set('sseEmitter', sseEmitter);
+
+// --- DB & Background Sweeper ---
+connectDB().then(() => {
+  initNotificationSweeper(app);
+}).catch((err) => {
+  console.error('[App] Database connection error:', err.message);
+});
 
 // --- Proxy awareness (needed behind App Runner/ELB for rate limits & IPs) ---
 app.set('trust proxy', 1);
