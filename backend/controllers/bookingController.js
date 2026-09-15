@@ -6,6 +6,7 @@ const PartyDuration = require('../models/PartyDuration');
 const { calculateWaitTime, getWaitTimeRange } = require('../utils/waitTimeCalculator');
 const { sendSMS } = require('../utils/telnyxService');
 const { formatPhoneNumber } = require('../utils/helpers');
+const { getSmsTemplate } = require('../utils/smsTemplates');
 const {
   startNotificationTimers,
   cancelTimers,
@@ -26,7 +27,7 @@ const logMessage = async (restaurantId, bookingId, customerPhone, customerName, 
       messageType,
       content,
       telnyxMessageId,
-      status: direction === 'outbound' ? 'sent' : 'received'
+      status: direction === 'outbound' ? (telnyxMessageId ? 'sent' : 'failed') : 'received'
     });
     await message.save();
     return message;
