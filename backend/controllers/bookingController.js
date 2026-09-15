@@ -582,28 +582,46 @@ const handleCustomerResponse = async (req, res) => {
       return res.status(200).json({ message: 'Ignored loopback message.' });
     }
 
-    // 4. Flexible lookup matching digits across any spacing or dash variations
-    const searchDigits = fromDigits.length >= 10 ? fromDigits.slice(-10) : fromDigits;
-    const digitPattern = searchDigits.split('').join('[\\s\\-\\(\\)\\.]*');
-    const phoneRegex = new RegExp(`[\\s\\-\\(\\)\\.]*${digitPattern}[\\s\\-\\(\\)\\.]*$`, 'i');
+    // 4. Exact match on canonical E.164 phone number first
+    const canonicalFrom = formatPhoneNumber(rawFrom);
+    const exactQuery = { customerPhone: canonicalFrom };
 
-    // Prioritize most recent notified booking, then active (waiting/confirmed), then any booking
-    let booking = await Booking.findOne({
-      customerPhone: phoneRegex,
-      status: 'notified'
-    }).sort({ notificationSentAt: -1 }).populate('restaurantId');
+    let booking = await Booking.findOne({ ...exactQuery, status: 'notified' })
+      .sort({ notificationSentAt: -1 }).populate('restaurantId');
     
     if (!booking) {
-      booking = await Booking.findOne({
-        customerPhone: phoneRegex,
-        status: { $in: ['waiting', 'confirmed'] }
-      }).sort({ createdAt: -1 }).populate('restaurantId');
+      booking = await Booking.findOne({ ...exactQuery, status: { $in: ['waiting', 'confirmed'] } })
+        .sort({ createdAt: -1 }).populate('restaurantId');
     }
 
     if (!booking) {
+      booking = await Booking.findOne(exactQuery)
+        .sort({ createdAt: -1 }).populate('restaurantId');
+    }
+
+    // Fallback: If no exact match found, flexible lookup matching digits
+    if (!booking) {
+      const searchDigits = fromDigits.length >= 10 ? fromDigits.slice(-10) : fromDigits;
+      const digitPattern = searchDigits.split('').join('[\\s\\-\\(\\)\\.]*');
+      const phoneRegex = new RegExp(`[\\s\\-\\(\\)\\.]*${digitPattern}[\\s\\-\\(\\)\\.]*$`, 'i');
+
       booking = await Booking.findOne({
-        customerPhone: phoneRegex
-      }).sort({ createdAt: -1 }).populate('restaurantId');
+        customerPhone: phoneRegex,
+        status: 'notified'
+      }).sort({ notificationSentAt: -1 }).populate('restaurantId');
+      
+      if (!booking) {
+        booking = await Booking.findOne({
+          customerPhone: phoneRegex,
+          status: { $in: ['waiting', 'confirmed'] }
+        }).sort({ createdAt: -1 }).populate('restaurantId');
+      }
+
+      if (!booking) {
+        booking = await Booking.findOne({
+          customerPhone: phoneRegex
+        }).sort({ createdAt: -1 }).populate('restaurantId');
+      }
     }
 
     if (!booking) {

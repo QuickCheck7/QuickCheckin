@@ -376,9 +376,9 @@ const getMessages = async (req, res) => {
     const query = { restaurantId };
 
     if (customerPhone) {
-      const clean = customerPhone.replace(/\D/g, '');
-      const pattern = clean.length >= 7 ? clean.slice(-7).split('').join('[\\s\\-\\(\\)\\.]*') : customerPhone;
-      query.customerPhone = { $regex: pattern, $options: 'i' };
+      const canonical = formatPhoneNumber(customerPhone);
+      const clean = (canonical || customerPhone).replace(/\D/g, '');
+      query.customerPhone = { $in: [customerPhone, canonical, `+${clean}`, clean] };
     } else {
       // Retain messages for the last 30 days so conversations remain visible
       const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
@@ -393,7 +393,7 @@ const getMessages = async (req, res) => {
       .limit(parseInt(limit) || 300)
       .lean();
 
-    // Group by normalized 10-digit customer phone for unified conversation view
+    // Group by canonical E.164 customer phone for distinct conversation view
     const conversations = {};
 
     for (const msg of messages) {
@@ -406,7 +406,7 @@ const getMessages = async (req, res) => {
       }
 
       const canonicalPhone = formatPhoneNumber(rawPhone) || rawPhone;
-      const groupKey = digits.length >= 10 ? digits.slice(-10) : digits;
+      const groupKey = canonicalPhone;
 
       if (!conversations[groupKey]) {
         conversations[groupKey] = {
@@ -416,7 +416,7 @@ const getMessages = async (req, res) => {
           lastMessage: null
         };
       } else {
-        if (!conversations[groupKey].customerName && msg.customerName) {
+        if (msg.customerName) {
           conversations[groupKey].customerName = msg.customerName;
         }
       }
