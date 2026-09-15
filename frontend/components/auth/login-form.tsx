@@ -10,13 +10,22 @@ import { useAuthStore, UserRole } from "@/lib/auth-store";
 import { useTranslation } from "@/lib/i18n";
 import { Phone, UserCircle2, ArrowRight } from "lucide-react";
 
+const COUNTRIES = [
+  { id: "US", dialCode: "+1", label: "🇺🇸 +1 (US)" },
+  { id: "CA", dialCode: "+1", label: "🇨🇦 +1 (CA)" },
+  { id: "IN", dialCode: "+91", label: "🇮🇳 +91 (IN)" },
+];
+
 export function LoginForm() {
   const { t } = useTranslation();
-  const [countryCode, setCountryCode] = useState("+1");
+  const [selectedCountry, setSelectedCountry] = useState("US");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [selectedRole, setSelectedRole] = useState<UserRole | "">("");
   const [errors, setErrors] = useState<{ phone?: string; role?: string }>({});
   const { login, isLoading } = useAuthStore();
+
+  const activeCountry = COUNTRIES.find((c) => c.id === selectedCountry) || COUNTRIES[0];
+  const countryCode = activeCountry.dialCode;
 
   const validateForm = () => {
     const e: { phone?: string; role?: string } = {};
@@ -59,47 +68,16 @@ export function LoginForm() {
         </Label>
         <div className="flex gap-2 mt-2">
           {/* Country Code Dropdown */}
-          <Select value={countryCode} onValueChange={setCountryCode}>
-            <SelectTrigger className="w-28 h-12 rounded-xl border-border focus-visible:ring-2 focus-visible:ring-primary text-sm">
+          <Select value={selectedCountry} onValueChange={setSelectedCountry}>
+            <SelectTrigger className="w-32 h-12 rounded-xl border-border focus-visible:ring-2 focus-visible:ring-primary text-sm">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent className="max-h-60">
-              <SelectItem value="+1">
-                <span className="font-mono">+1 (US/CA)</span>
-              </SelectItem>
-              <SelectItem value="+91">
-                <span className="font-mono">+91 (IN)</span>
-              </SelectItem>
-              <SelectItem value="+44">
-                <span className="font-mono">+44 (UK)</span>
-              </SelectItem>
-              <SelectItem value="+61">
-                <span className="font-mono">+61 (AU)</span>
-              </SelectItem>
-              <SelectItem value="+49">
-                <span className="font-mono">+49 (DE)</span>
-              </SelectItem>
-              <SelectItem value="+33">
-                <span className="font-mono">+33 (FR)</span>
-              </SelectItem>
-              <SelectItem value="+971">
-                <span className="font-mono">+971 (UAE)</span>
-              </SelectItem>
-              <SelectItem value="+65">
-                <span className="font-mono">+65 (SG)</span>
-              </SelectItem>
-              <SelectItem value="+52">
-                <span className="font-mono">+52 (MX)</span>
-              </SelectItem>
-              <SelectItem value="+34">
-                <span className="font-mono">+34 (ES)</span>
-              </SelectItem>
-              <SelectItem value="+39">
-                <span className="font-mono">+39 (IT)</span>
-              </SelectItem>
-              <SelectItem value="+81">
-                <span className="font-mono">+81 (JP)</span>
-              </SelectItem>
+            <SelectContent>
+              {COUNTRIES.map((country) => (
+                <SelectItem key={country.id} value={country.id}>
+                  <span className="font-mono">{country.label}</span>
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
 
@@ -109,7 +87,7 @@ export function LoginForm() {
             <Input
               id="phone"
               type="tel"
-              placeholder={countryCode === "+1" ? "(555) 000-0000" : countryCode === "+91" ? "98765 43210" : "Phone number"}
+              placeholder={countryCode === "+1" ? "(555) 000-0000" : "98765 43210"}
               value={phoneNumber}
               onChange={(e) => setPhoneNumber(e.target.value.replace(/[^\d+\s\-()]/g, ""))}
               className="pl-10 h-12 text-lg rounded-xl border-border focus-visible:ring-2 focus-visible:ring-primary"
