@@ -6,6 +6,10 @@ const connectDB = async () => {
 
     console.log(`MongoDB Connected: ${conn.connection.host}`);
 
+    // Automatically seed default party durations if not already present
+    const seedPartyDurations = require('../seeds/partyDurations');
+    seedPartyDurations().catch((err) => console.error('[DB] PartyDurations seed error:', err.message));
+
     // Automatically normalize legacy and unformatted customer/restaurant data
     const { runDataMigration } = require('../utils/migrationService');
     runDataMigration().catch((err) => console.error('[DB] Migration error:', err.message));

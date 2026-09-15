@@ -25,6 +25,30 @@ const COUNTRIES = [
   { id: 'IN', dialCode: '+91', label: '🇮🇳 +91 (IN)' },
 ];
 
+const getFullPhoneNumber = (rawPhone: string, selectedDialCode: string) => {
+  const trimmed = rawPhone.trim();
+  const cleanDigits = trimmed.replace(/\D/g, '');
+  if (!cleanDigits) return '';
+
+  // If explicitly prefixed with +, preserve user's explicit country code
+  if (trimmed.startsWith('+')) {
+    return `+${cleanDigits}`;
+  }
+
+  // If 12 digits starting with 91, it is India with country code
+  if (cleanDigits.length === 12 && cleanDigits.startsWith('91')) {
+    return `+${cleanDigits}`;
+  }
+
+  // If 11 digits starting with 1, it is North America with country code
+  if (cleanDigits.length === 11 && cleanDigits.startsWith('1')) {
+    return `+${cleanDigits}`;
+  }
+
+  // Standard 10-digit number: apply the selected country dial code (+1 or +91)
+  return `${selectedDialCode}${cleanDigits}`;
+};
+
 function KioskContent() {
   const { t, language } = useTranslation();
   const router = useRouter();
@@ -36,6 +60,19 @@ function KioskContent() {
   const [selectedCountry, setSelectedCountry] = useState('CA');
   const activeCountry = COUNTRIES.find((c) => c.id === selectedCountry) || COUNTRIES[0];
   const countryCode = activeCountry.dialCode;
+
+  const handlePhoneChange = (val: string) => {
+    const sanitized = val.replace(/[^\d+\s\-()]/g, '');
+    setPhone(sanitized);
+
+    // Auto-detect country code from input if user types +91 or 91...
+    const clean = sanitized.replace(/\D/g, '');
+    if (sanitized.startsWith('+91') || (clean.startsWith('91') && clean.length >= 2)) {
+      if (selectedCountry !== 'IN') setSelectedCountry('IN');
+    } else if (sanitized.startsWith('+1') || (clean.startsWith('1') && clean.length >= 11)) {
+      if (selectedCountry === 'IN') setSelectedCountry('CA');
+    }
+  };
   const [errors, setErrors] = useState<{ name?: string; phone?: string }>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [waitTime, setWaitTime] = useState<number>(0);
@@ -59,11 +96,13 @@ function KioskContent() {
     playSound: false // No sound on kiosk
   });
 
-  // Fetch allowed party sizes and initial wait times
+  // Fetch allowed party sizes and initial wait times, plus 30s auto-refresh
   useEffect(() => {
+    let isMounted = true;
+
     const fetchSettings = async () => {
       if (!restaurantId) {
-        setLoadingSettings(false);
+        if (isMounted) setLoadingSettings(false);
         return;
       }
 
@@ -73,21 +112,23 @@ function KioskContent() {
           apiClient.getWaitTimes(restaurantId)
         ]);
 
-        if (settingsResult.data?.tables && settingsResult.data.tables.length > 0) {
-          // Extract unique capacities from tables and sort them
-          const capacities = settingsResult.data.tables
-            .filter(t => t.isActive)
-            .map(t => t.capacity);
-          const uniqueCapacities = [...new Set(capacities)].sort((a, b) => a - b);
+        if (!isMounted) return;
 
-          if (uniqueCapacities.length > 0) {
-            setAllowedPartySizes(uniqueCapacities);
+        if (settingsResult.data?.tables && settingsResult.data.tables.length > 0) {
+          const activeTables = settingsResult.data.tables.filter(t => t.isActive);
+          if (activeTables.length > 0) {
+            const maxCapacity = Math.max(...activeTables.map(t => t.capacity));
+            const configuredSizes: number[] = settingsResult.data.settings?.allowedPartySizes?.length
+              ? settingsResult.data.settings.allowedPartySizes
+              : [1, 2, 3, 4, 5, 6, 7, 8];
+            const sizes = configuredSizes.filter(s => s <= maxCapacity).sort((a, b) => a - b);
+
+            setAllowedPartySizes(sizes.length > 0 ? sizes : [1, 2, 3, 4]);
             setTablesConfigured(true);
           } else {
             setTablesConfigured(false);
           }
         } else {
-          // No tables configured
           setTablesConfigured(false);
         }
 
@@ -97,11 +138,29 @@ function KioskContent() {
       } catch (error) {
         console.error('Error fetching settings:', error);
       } finally {
-        setLoadingSettings(false);
+        if (isMounted) setLoadingSettings(false);
       }
     };
 
     fetchSettings();
+
+    // Auto-refresh wait times every 30 seconds so elapsed dining times dynamically reduce displayed wait times
+    const interval = setInterval(async () => {
+      if (!restaurantId || !isMounted) return;
+      try {
+        const waitTimesResult = await apiClient.getWaitTimes(restaurantId);
+        if (isMounted && waitTimesResult.data?.waitTimes) {
+          setWaitTimes(waitTimesResult.data.waitTimes);
+        }
+      } catch (err) {
+        console.error('Error refreshing wait times:', err);
+      }
+    }, 30000);
+
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
   }, [restaurantId]);
 
   const handleLogout = () => {
@@ -148,8 +207,7 @@ function KioskContent() {
     setIsSubmitting(true);
 
     try {
-      const cleanDigits = phone.trim().replace(/\D/g, '');
-      const fullPhone = phone.trim().startsWith('+') ? `+${cleanDigits}` : `${countryCode}${cleanDigits}`;
+      const fullPhone = getFullPhoneNumber(phone, countryCode);
 
       const { data, error } = await apiClient.createBooking(
         restaurantId,
@@ -266,7 +324,7 @@ function KioskContent() {
                     ) : (
                       <>
                         {(() => {
-                          const visibleSizes = allowedPartySizes.filter(size => waitTimes[size] !== undefined);
+                          const visibleSizes = allowedPartySizes.filter(size => waitTimes[size] !== undefined && waitTimes[size] !== null);
                           const count = visibleSizes.length;
                           const gridClass = 
                             count <= 2 ? 'grid-cols-2' :
@@ -366,7 +424,7 @@ function KioskContent() {
                         </select>
                         <Input
                           value={phone}
-                          onChange={(e) => setPhone(e.target.value.replace(/[^\d+\s\-()]/g, ''))}
+                          onChange={(e) => handlePhoneChange(e.target.value)}
                           placeholder={countryCode === '+1' ? '(555) 000-0000' : '98765 43210'}
                           className="flex-1 h-14 text-lg border-border focus-visible:ring-2 focus-visible:ring-primary"
                         />
@@ -409,7 +467,7 @@ function KioskContent() {
 
                         setIsSubmitting(true);
                         try {
-                          const fullPhone = phone.trim().startsWith('+') ? `+${cleanDigits}` : `${countryCode}${cleanDigits}`;
+                          const fullPhone = getFullPhoneNumber(phone, countryCode);
                           const { data, error } = await apiClient.createBooking(
                             restaurantId,
                             name,
@@ -492,7 +550,7 @@ function KioskContent() {
                         </select>
                         <Input
                           value={phone}
-                          onChange={(e) => setPhone(e.target.value.replace(/[^\d+\s\-()]/g, ''))}
+                          onChange={(e) => handlePhoneChange(e.target.value)}
                           placeholder={countryCode === '+1' ? '(555) 000-0000' : '98765 43210'}
                           className="flex-1 h-14 text-lg border-border focus-visible:ring-2 focus-visible:ring-primary"
                         />
@@ -549,7 +607,7 @@ function KioskContent() {
                       <div className="flex items-center justify-between">
                         <span className="text-lg font-medium text-ink">{t('phone')}</span>
                         <span className="text-lg font-mono text-ink">
-                          {phone.trim().startsWith('+') ? phone : `${countryCode} ${phone}`}
+                          {getFullPhoneNumber(phone, countryCode)}
                         </span>
                       </div>
                     </div>

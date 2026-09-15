@@ -14,6 +14,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { AnimatePresence, motion } from 'framer-motion';
+import { formatWaitTime } from '@/lib/utils';
 
 export default function AdminDashboard() {
   const router = useRouter();
@@ -577,6 +578,22 @@ export default function AdminDashboard() {
                               <Clock className="h-3.5 w-3.5 mr-1 text-muted/70 shrink-0" />
                               {formatDistanceToNow(new Date(booking.checkInTime || booking.createdAt), { addSuffix: true, locale: language === 'fr' ? fr : undefined })}
                             </span>
+                            {booking.status === 'waiting' && (booking.estimatedSeatingTime || booking.waitTime) && (
+                              <>
+                                <span className="hidden sm:inline text-muted/40">•</span>
+                                <span className="inline-flex items-center shrink-0 text-primary font-medium">
+                                  <Clock className="h-3.5 w-3.5 mr-1 text-primary shrink-0" />
+                                  {(() => {
+                                    if (booking.estimatedSeatingTime) {
+                                      const diffMs = new Date(booking.estimatedSeatingTime).getTime() - Date.now();
+                                      const mins = Math.max(0, Math.ceil(diffMs / 60000));
+                                      return mins <= 2 ? t('tableReady') : `${formatWaitTime(mins, t)} remaining`;
+                                    }
+                                    return booking.waitTime ? `${formatWaitTime(booking.waitTime, t)} wait` : '';
+                                  })()}
+                                </span>
+                              </>
+                            )}
                           </div>
                         </div>
                       </div>

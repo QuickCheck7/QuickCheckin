@@ -175,7 +175,7 @@ const calculateWaitTime = async (restaurantId, partySize) => {
     }
 
     if (myCompatibleTables.length === 0) {
-      return { waitTime: 60, message: 'No suitable tables available' };
+      return { waitTime: null, message: 'No suitable tables available' };
     }
 
     // Find my best slot

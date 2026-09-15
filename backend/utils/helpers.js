@@ -20,6 +20,11 @@ const formatPhoneNumber = (phone) => {
     return `+${cleaned}`;
   }
   
+  // 12 digits starting with 91 is India with country code
+  if (cleaned.length === 12 && cleaned.startsWith('91')) {
+    return `+${cleaned}`;
+  }
+
   // 10 digits without country prefix defaults to North America (+1)
   if (cleaned.length === 10) {
     return `+1${cleaned}`;

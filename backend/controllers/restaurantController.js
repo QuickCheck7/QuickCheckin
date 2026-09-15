@@ -443,24 +443,35 @@ const broadcastWaitTimeUpdate = async (req, restaurantId) => {
     const sseEmitter = req.app.get('sseEmitter');
     if (!sseEmitter) return;
     
-    // Get all table capacities
-    const tables = await Table.find({ 
-      restaurantId, 
-      isActive: true,
-      status: { $nin: ['unavailable', 'reserved'] }
-    }).distinct('capacity');
+    const [restaurant, tables] = await Promise.all([
+      Restaurant.findById(restaurantId).select('allowedPartySizes'),
+      Table.find({ 
+        restaurantId, 
+        isActive: true,
+        status: { $nin: ['unavailable', 'reserved'] }
+      })
+    ]);
     
-    if (tables.length === 0) return;
-    
+    if (!tables || tables.length === 0) return;
+
+    const maxCapacity = Math.max(...tables.map(t => t.capacity));
+    const basePartySizes = (restaurant?.allowedPartySizes && restaurant.allowedPartySizes.length > 0)
+      ? restaurant.allowedPartySizes
+      : [1, 2, 3, 4, 5, 6, 7, 8];
+
+    const validSizes = basePartySizes.filter(size => size <= maxCapacity);
+
     // Calculate wait times for each party size
     const waitTimes = {};
-    for (const size of tables.sort((a, b) => a - b)) {
+    for (const size of validSizes) {
       const result = await calculateWaitTime(restaurantId, size);
-      waitTimes[size] = result.waitTime;
+      if (result && result.waitTime !== null && result.waitTime !== undefined) {
+        waitTimes[size] = result.waitTime;
+      }
     }
     
     // Emit wait time update event
-    sseEmitter.emit('waitTime', { restaurantId, type: 'wait_time_update', waitTimes });
+    sseEmitter.emit('waitTime', { restaurantId: restaurantId.toString(), type: 'wait_time_update', waitTimes });
   } catch (error) {
     console.error('Error broadcasting wait times:', error);
   }

@@ -42,24 +42,38 @@ const broadcastWaitTimeUpdate = async (req, restaurantId) => {
     const sseEmitter = req.app.get('sseEmitter');
     if (!sseEmitter) return;
     
-    // Get all active tables capacities
-    const tables = await Table.find({ 
-      restaurantId: req.params.restaurantId, 
-      isActive: true,
-      status: { $nin: ['unavailable', 'reserved'] }
-    }).distinct('capacity');
+    const targetRestaurantId = restaurantId || req.params?.restaurantId;
+    if (!targetRestaurantId) return;
+
+    const [restaurant, tables] = await Promise.all([
+      Restaurant.findById(targetRestaurantId).select('allowedPartySizes'),
+      Table.find({ 
+        restaurantId: targetRestaurantId, 
+        isActive: true,
+        status: { $nin: ['unavailable', 'reserved'] }
+      })
+    ]);
     
-    if (tables.length === 0) return;
-    
+    if (!tables || tables.length === 0) return;
+
+    const maxCapacity = Math.max(...tables.map(t => t.capacity));
+    const basePartySizes = (restaurant?.allowedPartySizes && restaurant.allowedPartySizes.length > 0)
+      ? restaurant.allowedPartySizes
+      : [1, 2, 3, 4, 5, 6, 7, 8];
+
+    const validSizes = basePartySizes.filter(size => size <= maxCapacity);
+
     // Calculate wait times for each party size
     const waitTimes = {};
-    for (const size of tables.sort((a, b) => a - b)) {
-      const result = await calculateWaitTime(restaurantId, size);
-      waitTimes[size] = result.waitTime;
+    for (const size of validSizes) {
+      const result = await calculateWaitTime(targetRestaurantId, size);
+      if (result && result.waitTime !== null && result.waitTime !== undefined) {
+        waitTimes[size] = result.waitTime;
+      }
     }
     
     // Emit wait time update event
-    sseEmitter.emit('waitTime', { restaurantId, type: 'wait_time_update', waitTimes });
+    sseEmitter.emit('waitTime', { restaurantId: targetRestaurantId.toString(), type: 'wait_time_update', waitTimes });
   } catch (error) {
     console.error('Error broadcasting wait times:', error);
   }
@@ -86,7 +100,7 @@ const createBooking = async (req, res) => {
     
     // Calculate wait time using smart calculator
     const waitResult = await calculateWaitTime(restaurantId, partySize);
-    const waitTime = waitResult.waitTime;
+    const waitTime = waitResult.waitTime !== null && waitResult.waitTime !== undefined ? waitResult.waitTime : 30;
     const estimatedSeatingTime = new Date(Date.now() + waitTime * 60 * 1000);
     
     const normalizedCustomerPhone = formatPhoneNumber(customerPhone);
@@ -843,24 +857,33 @@ const getWaitTimes = async (req, res) => {
   try {
     const { restaurantId } = req.params;
     
-    // Get all unique table capacities for this restaurant
-    const tables = await Table.find({ 
-      restaurantId: req.params.restaurantId,
-      isActive: true,
-      status: { $nin: ['unavailable', 'reserved'] }
-    }).distinct('capacity');
+    const [restaurant, tables] = await Promise.all([
+      Restaurant.findById(restaurantId).select('allowedPartySizes'),
+      Table.find({ 
+        restaurantId,
+        isActive: true,
+        status: { $nin: ['unavailable', 'reserved'] }
+      })
+    ]);
     
-    if (tables.length === 0) {
+    if (!tables || tables.length === 0) {
       return res.json({ waitTimes: {} });
     }
     
-    const partySizes = tables.sort((a, b) => a - b);
-    
+    const maxCapacity = Math.max(...tables.map(t => t.capacity));
+    const basePartySizes = (restaurant?.allowedPartySizes && restaurant.allowedPartySizes.length > 0)
+      ? restaurant.allowedPartySizes
+      : [1, 2, 3, 4, 5, 6, 7, 8];
+
+    const validSizes = basePartySizes.filter(size => size <= maxCapacity);
+
     // Calculate wait time for each party size
     const waitTimes = {};
-    for (const size of partySizes) {
+    for (const size of validSizes) {
       const result = await calculateWaitTime(restaurantId, size);
-      waitTimes[size] = result.waitTime;
+      if (result && result.waitTime !== null && result.waitTime !== undefined) {
+        waitTimes[size] = result.waitTime;
+      }
     }
     
     res.json({ waitTimes });
