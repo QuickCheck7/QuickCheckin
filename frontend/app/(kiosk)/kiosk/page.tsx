@@ -501,6 +501,10 @@ function KioskContent() {
                       )}
                     </div>
 
+                    <div className="p-3 bg-off rounded-lg border border-border text-xs text-muted leading-relaxed">
+                      By providing your mobile number, you agree to receive transactional SMS waitlist notifications from <strong>QuickCheck</strong> on behalf of this restaurant. Message frequency varies based on visit (approx. 2-4 msgs/visit). Msg & data rates may apply. Reply <strong>STOP</strong> to cancel or <strong>HELP</strong> for help. Consent is not a condition of service. View <a href="/privacy" target="_blank" className="text-primary underline">Privacy Policy</a> & <a href="/terms" target="_blank" className="text-primary underline">Terms</a>.
+                    </div>
+
                     <div className="flex gap-4 pt-4">
                       <Button
                         variant="outline"
@@ -546,6 +550,10 @@ function KioskContent() {
                         <span className="text-lg text-ink">{phone}</span>
                       </div>
                     </div>
+
+                    <p className="text-xs text-muted text-center px-2 leading-relaxed">
+                      By clicking Join Waitlist, you confirm your consent to receive transactional waitlist SMS from <strong>QuickCheck</strong>. Msg & data rates may apply. Reply STOP to cancel.
+                    </p>
 
                     <div className="flex gap-4 pt-4">
                       <Button
