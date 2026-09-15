@@ -19,6 +19,12 @@ import { useSSE } from '@/hooks/useSSE';
 
 type KioskStep = 'party-size' | 'details' | 'confirmation' | 'success' | 'custom-request' | 'custom-success';
 
+const COUNTRIES = [
+  { id: 'CA', dialCode: '+1', label: '🇨🇦 +1 (CA)' },
+  { id: 'US', dialCode: '+1', label: '🇺🇸 +1 (US)' },
+  { id: 'IN', dialCode: '+91', label: '🇮🇳 +91 (IN)' },
+];
+
 function KioskContent() {
   const { t, language } = useTranslation();
   const router = useRouter();
@@ -27,7 +33,9 @@ function KioskContent() {
   const [isCustom, setIsCustom] = useState(false);
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
-  const [countryCode, setCountryCode] = useState('+1');
+  const [selectedCountry, setSelectedCountry] = useState('CA');
+  const activeCountry = COUNTRIES.find((c) => c.id === selectedCountry) || COUNTRIES[0];
+  const countryCode = activeCountry.dialCode;
   const [errors, setErrors] = useState<{ name?: string; phone?: string }>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [waitTime, setWaitTime] = useState<number>(0);
@@ -176,6 +184,7 @@ function KioskContent() {
     setIsCustom(false);
     setName('');
     setPhone('');
+    setSelectedCountry('CA');
     setErrors({});
   }, []);
 
@@ -345,27 +354,20 @@ function KioskContent() {
                       <label className="block text-lg font-medium mb-2 text-ink">{t('phoneNumber')} *</label>
                       <div className="flex gap-2">
                         <select
-                          value={countryCode}
-                          onChange={(e) => setCountryCode(e.target.value)}
-                          className="h-14 px-3 rounded-md border-border border bg-panel text-base font-mono focus:outline-none focus:ring-2 focus:ring-primary"
+                          value={selectedCountry}
+                          onChange={(e) => setSelectedCountry(e.target.value)}
+                          className="h-14 px-3 rounded-md border-border border bg-panel text-base font-mono focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer"
                         >
-                          <option value="+1">+1 (US/CA)</option>
-                          <option value="+91">+91 (IN)</option>
-                          <option value="+44">+44 (UK)</option>
-                          <option value="+61">+61 (AU)</option>
-                          <option value="+49">+49 (DE)</option>
-                          <option value="+33">+33 (FR)</option>
-                          <option value="+971">+971 (UAE)</option>
-                          <option value="+65">+65 (SG)</option>
-                          <option value="+52">+52 (MX)</option>
-                          <option value="+34">+34 (ES)</option>
-                          <option value="+39">+39 (IT)</option>
-                          <option value="+81">+81 (JP)</option>
+                          {COUNTRIES.map((c) => (
+                            <option key={c.id} value={c.id}>
+                              {c.label}
+                            </option>
+                          ))}
                         </select>
                         <Input
                           value={phone}
                           onChange={(e) => setPhone(e.target.value.replace(/[^\d+\s\-()]/g, ''))}
-                          placeholder={countryCode === '+1' ? '(555) 000-0000' : countryCode === '+91' ? '98765 43210' : 'Phone number'}
+                          placeholder={countryCode === '+1' ? '(555) 000-0000' : '98765 43210'}
                           className="flex-1 h-14 text-lg border-border focus-visible:ring-2 focus-visible:ring-primary"
                         />
                       </div>
@@ -394,14 +396,20 @@ function KioskContent() {
                       size="lg"
                       disabled={isSubmitting}
                       onClick={async () => {
-                        if (!name || !phone || !partySize) {
+                        if (!name.trim() || !phone.trim() || !partySize) {
                           toast.error(t('pleaseFillAllFields'));
+                          return;
+                        }
+
+                        const cleanDigits = phone.trim().replace(/\D/g, '');
+                        if (cleanDigits.length < 7 || cleanDigits.length > 15) {
+                          toast.error(t('pleaseEnterValidPhone'));
                           return;
                         }
 
                         setIsSubmitting(true);
                         try {
-                          const fullPhone = `${countryCode}${phone}`;
+                          const fullPhone = phone.trim().startsWith('+') ? `+${cleanDigits}` : `${countryCode}${cleanDigits}`;
                           const { data, error } = await apiClient.createBooking(
                             restaurantId,
                             name,
@@ -472,27 +480,20 @@ function KioskContent() {
                       </label>
                       <div className="flex gap-2">
                         <select
-                          value={countryCode}
-                          onChange={(e) => setCountryCode(e.target.value)}
-                          className="h-14 px-3 rounded-md border-border border bg-panel text-base font-mono focus:outline-none focus:ring-2 focus:ring-primary"
+                          value={selectedCountry}
+                          onChange={(e) => setSelectedCountry(e.target.value)}
+                          className="h-14 px-3 rounded-md border-border border bg-panel text-base font-mono focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer"
                         >
-                          <option value="+1">+1 (US/CA)</option>
-                          <option value="+91">+91 (IN)</option>
-                          <option value="+44">+44 (UK)</option>
-                          <option value="+61">+61 (AU)</option>
-                          <option value="+49">+49 (DE)</option>
-                          <option value="+33">+33 (FR)</option>
-                          <option value="+971">+971 (UAE)</option>
-                          <option value="+65">+65 (SG)</option>
-                          <option value="+52">+52 (MX)</option>
-                          <option value="+34">+34 (ES)</option>
-                          <option value="+39">+39 (IT)</option>
-                          <option value="+81">+81 (JP)</option>
+                          {COUNTRIES.map((c) => (
+                            <option key={c.id} value={c.id}>
+                              {c.label}
+                            </option>
+                          ))}
                         </select>
                         <Input
                           value={phone}
                           onChange={(e) => setPhone(e.target.value.replace(/[^\d+\s\-()]/g, ''))}
-                          placeholder={countryCode === '+1' ? '(555) 000-0000' : countryCode === '+91' ? '98765 43210' : 'Phone number'}
+                          placeholder={countryCode === '+1' ? '(555) 000-0000' : '98765 43210'}
                           className="flex-1 h-14 text-lg border-border focus-visible:ring-2 focus-visible:ring-primary"
                         />
                       </div>
@@ -547,7 +548,9 @@ function KioskContent() {
                       </div>
                       <div className="flex items-center justify-between">
                         <span className="text-lg font-medium text-ink">{t('phone')}</span>
-                        <span className="text-lg text-ink">{phone}</span>
+                        <span className="text-lg font-mono text-ink">
+                          {phone.trim().startsWith('+') ? phone : `${countryCode} ${phone}`}
+                        </span>
                       </div>
                     </div>
 
