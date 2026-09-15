@@ -11,14 +11,14 @@ import { useTranslation } from "@/lib/i18n";
 import { Phone, UserCircle2, ArrowRight } from "lucide-react";
 
 const COUNTRIES = [
-  { id: "US", dialCode: "+1", label: "🇺🇸 +1 (US)" },
   { id: "CA", dialCode: "+1", label: "🇨🇦 +1 (CA)" },
+  { id: "US", dialCode: "+1", label: "🇺🇸 +1 (US)" },
   { id: "IN", dialCode: "+91", label: "🇮🇳 +91 (IN)" },
 ];
 
 export function LoginForm() {
   const { t } = useTranslation();
-  const [selectedCountry, setSelectedCountry] = useState("US");
+  const [selectedCountry, setSelectedCountry] = useState("CA");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [selectedRole, setSelectedRole] = useState<UserRole | "">("");
   const [errors, setErrors] = useState<{ phone?: string; role?: string }>({});
