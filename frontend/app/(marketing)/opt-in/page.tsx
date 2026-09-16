@@ -45,7 +45,7 @@ export default function OptInProofPage() {
             </div>
           </div>
           <p className="text-sm text-muted leading-relaxed">
-            QuickCheck is a software-as-a-service (SaaS) platform operated by KOHLI GARAGE INC. Participating restaurants utilize QuickCheck hardware kiosks and digital guest check-in links. QuickCheck acts as the direct sender of automated transactional SMS messages to dining guests regarding their table status.
+            QuickCheck is a direct customer-facing restaurant waitlist service operated by KOHLI GARAGE INC. When dining guests join the waitlist at a restaurant using the QuickCheck kiosk, QuickCheck is the sole permitted sender of automated transactional SMS messages sent directly to the guest regarding their waitlist position and table readiness. All messages originate exclusively from QuickCheck.
           </p>
         </div>
 
@@ -107,10 +107,10 @@ export default function OptInProofPage() {
               </div>
 
               {/* Exact Disclosure */}
-              <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl text-xs text-ink/80 space-y-1 leading-relaxed">
-                <p className="font-semibold text-amber-900">SMS Consent Disclosure:</p>
+              <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl text-xs text-ink/80 space-y-1.5 leading-relaxed">
+                <p className="font-semibold text-amber-900">SMS Consent &amp; Privacy Disclosure:</p>
                 <p>
-                  &quot;By providing your mobile number, you agree to receive transactional SMS waitlist notifications from <strong>QuickCheck</strong> on behalf of this restaurant. Message frequency varies based on visit (approx. 2-4 msgs/visit). Msg &amp; data rates may apply. Reply <strong>STOP</strong> to cancel or <strong>HELP</strong> for help. Consent is not a condition of service.&quot;
+                  &quot;By providing your mobile number, you agree to receive transactional SMS waitlist notifications from <strong>QuickCheck</strong> regarding your waitlist status at this restaurant. Message frequency varies based on visit (approx. 2-4 msgs/visit). Msg &amp; data rates may apply. Reply <strong>STOP</strong> to cancel or <strong>HELP</strong> for help. Consent is not a condition of service. <strong>Your mobile information will not be sold or shared with third parties or affiliates for promotional or marketing purposes.</strong> View <Link href="/privacy" className="text-primary underline">Privacy Policy</Link> &amp; <Link href="/terms" className="text-primary underline">Terms</Link>.&quot;
                 </p>
               </div>
 
