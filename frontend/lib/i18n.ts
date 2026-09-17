@@ -322,7 +322,7 @@ export const translations = {
 
     // Auth
     sending: 'Sending...',
-    otpSmsNotice: 'You\'ll receive a 6-digit OTP via SMS to verify your number.',
+    otpSmsNotice: 'You will receive a 6-digit verification code via SMS from QuickCheck to authenticate your session. Msg & data rates may apply. Reply STOP to cancel.',
     copyright: '© 2025 QuickCheck. All rights reserved.',
     followUs: 'Follow Us',
     soundOn: 'Sound on (click to test)',
@@ -640,7 +640,7 @@ export const translations = {
 
     // Auth
     sending: 'Envoi en cours...',
-    otpSmsNotice: 'Vous recevrez un code à 6 chiffres par SMS pour vérifier votre numéro.',
+    otpSmsNotice: 'Vous recevrez un code à 6 chiffres par SMS de QuickCheck pour vous authentifier. Des frais de messages et données peuvent s\'appliquer. Répondez STOP pour annuler.',
     soundOn: 'Son activé (cliquez pour tester)',
     clickToEnableSound: 'Cliquez pour activer le son',
     planSmall: 'Petit',
