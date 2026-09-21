@@ -170,8 +170,12 @@ function SignupForm() {
         toast.error('Please fill in all required fields');
         return;
       }
-      if (businessNumberAvailable === false) {
-        toast.error('Invalid Business Number');
+      if (verifyingBusinessNumber) {
+        toast.error('Please wait for Business Number verification');
+        return;
+      }
+      if (businessNumberAvailable !== true) {
+        toast.error('Please provide a valid 9-digit Business Number');
         return;
       }
       

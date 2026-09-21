@@ -68,6 +68,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  // Scroll to top on route change
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      window.scrollTo(0, 0);
+    }
+  }, [pathname]);
+
   // Hydrate auth state from localStorage on mount
   useEffect(() => {
     hydrate();
