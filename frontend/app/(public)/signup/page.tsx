@@ -320,6 +320,10 @@ function SignupForm() {
     }));
   };
 
+  const isNextDisabled = 
+    (currentStep === 1 && (verifyingPostalCode || postalCodeAvailable !== true)) ||
+    (currentStep === 2 && (verifyingBusinessNumber || businessNumberAvailable !== true));
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-off p-4 relative overflow-hidden">
 
@@ -712,7 +716,12 @@ function SignupForm() {
                 <button
                   type="button"
                   onClick={handleNext}
-                  className="flex-1 flex items-center justify-center gap-2 bg-primary text-white py-3 px-6 rounded-xl font-semibold hover:bg-primary/90 transition"
+                  disabled={isNextDisabled}
+                  className={`flex-1 flex items-center justify-center gap-2 py-3 px-6 rounded-xl font-semibold transition ${
+                    isNextDisabled
+                      ? 'bg-muted text-white cursor-not-allowed'
+                      : 'bg-primary text-white hover:bg-primary/90'
+                  }`}
                 >
                   Next
                   <ChevronRight size={20} />
