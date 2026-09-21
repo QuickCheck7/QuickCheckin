@@ -313,7 +313,12 @@ function SignupForm() {
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
+    let { name, value } = e.target;
+    
+    if (name === 'businessNumber') {
+      value = value.replace(/\D/g, '').slice(0, 9);
+    }
+
     setFormData(prev => ({
       ...prev,
       [name]: name === 'seatCapacity' ? parseInt(value) || 0 : value
@@ -510,6 +515,8 @@ function SignupForm() {
                         type="text"
                         name="businessNumber"
                         required
+                        maxLength={9}
+                        pattern="\d*"
                         value={formData.businessNumber}
                         onChange={handleChange}
                         className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent bg-off text-ink ${businessNumberAvailable === false ? 'border-red-500' :
