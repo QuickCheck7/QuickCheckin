@@ -205,8 +205,8 @@ const isValidCanadianBN = (bn) => {
   if (!/^\d{9}$/.test(bn)) return false;
   
   let sum = 0;
-  // Alternate weights 2 and 1 for the first 8 digits
-  const weights = [2, 1, 2, 1, 2, 1, 2, 1];
+  // Standard Luhn for 9-digit BN: payload digits (1-8) alternate 1 and 2 from the left
+  const weights = [1, 2, 1, 2, 1, 2, 1, 2];
   
   for (let i = 0; i < 8; i++) {
     let digit = parseInt(bn[i]) * weights[i];
